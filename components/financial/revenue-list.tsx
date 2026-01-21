@@ -30,6 +30,59 @@ function formatCurrency(value: number) {
   }).format(value)
 }
 
+function getRevenueDescription(revenue: Revenue) {
+  if (revenue.description) {
+    return revenue.description
+  }
+  return revenue.member_id ? 'Dízimo' : 'Receita'
+}
+
+interface RevenueRowProps {
+  revenue: Revenue
+  onDelete: (id: string) => void
+  isDeleting: boolean
+}
+
+function RevenueRow({ revenue, onDelete, isDeleting }: RevenueRowProps) {
+  return (
+    <tr className="hover:bg-gray-50">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">
+            <FaPlus />
+          </div>
+          <span className="text-sm font-medium text-gray-700">
+            {getRevenueDescription(revenue)}
+          </span>
+        </div>
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-500">
+        {revenue.revenue_categories?.name || '-'}
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-500">
+        {format(new Date(revenue.transaction_date), 'dd MMM yyyy', {
+          locale: ptBR,
+        })}
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-500 capitalize">
+        {revenue.payment_method}
+      </td>
+      <td className="px-6 py-4 text-sm font-bold text-green-600 text-right">
+        {formatCurrency(Number(revenue.amount))}
+      </td>
+      <td className="px-6 py-4 text-right">
+        <button
+          onClick={() => onDelete(revenue.id)}
+          disabled={isDeleting}
+          className="text-red-600 hover:text-red-700 disabled:opacity-50"
+        >
+          <FaTrash />
+        </button>
+      </td>
+    </tr>
+  )
+}
+
 export function RevenueList({ revenues, categories }: RevenueListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -73,42 +126,12 @@ export function RevenueList({ revenues, categories }: RevenueListProps) {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {revenues.map((revenue) => (
-              <tr key={revenue.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">
-                      <FaPlus />
-                    </div>
-                    <span className="text-sm font-medium text-gray-700">
-                      {revenue.description || 
-                        (revenue.member_id ? 'Dízimo' : 'Receita')}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {revenue.revenue_categories?.name || '-'}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {format(new Date(revenue.transaction_date), 'dd MMM yyyy', {
-                    locale: ptBR,
-                  })}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500 capitalize">
-                  {revenue.payment_method}
-                </td>
-                <td className="px-6 py-4 text-sm font-bold text-green-600 text-right">
-                  {formatCurrency(Number(revenue.amount))}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button
-                    onClick={() => handleDelete(revenue.id)}
-                    disabled={deletingId === revenue.id}
-                    className="text-red-600 hover:text-red-700 disabled:opacity-50"
-                  >
-                    <FaTrash />
-                  </button>
-                </td>
-              </tr>
+              <RevenueRow
+                key={revenue.id}
+                revenue={revenue}
+                onDelete={handleDelete}
+                isDeleting={deletingId === revenue.id}
+              />
             ))}
           </tbody>
         </table>

@@ -27,6 +27,56 @@ function formatCurrency(value: number) {
   }).format(value)
 }
 
+function getExpenseDescription(expense: Expense) {
+  return expense.description || 'Despesa'
+}
+
+interface ExpenseRowProps {
+  expense: Expense
+  onDelete: (id: string) => void
+  isDeleting: boolean
+}
+
+function ExpenseRow({ expense, onDelete, isDeleting }: ExpenseRowProps) {
+  return (
+    <tr className="hover:bg-gray-50">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs">
+            <FaMinus />
+          </div>
+          <span className="text-sm font-medium text-gray-700">
+            {getExpenseDescription(expense)}
+          </span>
+        </div>
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-500">
+        {expense.expense_categories?.name || '-'}
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-500">
+        {format(new Date(expense.transaction_date), 'dd MMM yyyy', {
+          locale: ptBR,
+        })}
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-500 capitalize">
+        {expense.payment_method}
+      </td>
+      <td className="px-6 py-4 text-sm font-bold text-red-600 text-right">
+        {formatCurrency(Number(expense.amount))}
+      </td>
+      <td className="px-6 py-4 text-right">
+        <button
+          onClick={() => onDelete(expense.id)}
+          disabled={isDeleting}
+          className="text-red-600 hover:text-red-700 disabled:opacity-50"
+        >
+          <FaTrash />
+        </button>
+      </td>
+    </tr>
+  )
+}
+
 export function ExpenseList({ expenses, categories }: ExpenseListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
@@ -70,41 +120,12 @@ export function ExpenseList({ expenses, categories }: ExpenseListProps) {
           </thead>
           <tbody className="divide-y divide-gray-100">
             {expenses.map((expense) => (
-              <tr key={expense.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-red-100 text-red-600 flex items-center justify-center text-xs">
-                      <FaMinus />
-                    </div>
-                    <span className="text-sm font-medium text-gray-700">
-                      {expense.description || 'Despesa'}
-                    </span>
-                  </div>
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {expense.expense_categories?.name || '-'}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500">
-                  {format(new Date(expense.transaction_date), 'dd MMM yyyy', {
-                    locale: ptBR,
-                  })}
-                </td>
-                <td className="px-6 py-4 text-sm text-gray-500 capitalize">
-                  {expense.payment_method}
-                </td>
-                <td className="px-6 py-4 text-sm font-bold text-red-600 text-right">
-                  {formatCurrency(Number(expense.amount))}
-                </td>
-                <td className="px-6 py-4 text-right">
-                  <button
-                    onClick={() => handleDelete(expense.id)}
-                    disabled={deletingId === expense.id}
-                    className="text-red-600 hover:text-red-700 disabled:opacity-50"
-                  >
-                    <FaTrash />
-                  </button>
-                </td>
-              </tr>
+              <ExpenseRow
+                key={expense.id}
+                expense={expense}
+                onDelete={handleDelete}
+                isDeleting={deletingId === expense.id}
+              />
             ))}
           </tbody>
         </table>

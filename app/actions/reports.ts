@@ -412,3 +412,196 @@ export async function getMonthlyReport(month: number, year: number) {
   }
 }
 
+/**
+ * Obter dados para relatório anual completo
+ */
+export async function getAnnualReport(year: number) {
+  const supabase = await createClient()
+  const { churchId, error: churchError } = await getChurchId()
+
+  if (churchError || !churchId) {
+    return { error: churchError || 'Erro ao obter igreja', data: null }
+  }
+
+  const startDate = new Date(year, 0, 1).toISOString().split('T')[0]
+  const endDate = new Date(year, 11, 31).toISOString().split('T')[0]
+
+  // Buscar todas as receitas do ano
+  const { data: revenues } = await supabase
+    .from('revenues')
+    .select('amount, transaction_date')
+    .eq('church_id', churchId)
+    .gte('transaction_date', startDate)
+    .lte('transaction_date', endDate)
+
+  // Buscar todas as despesas do ano
+  const { data: expenses } = await supabase
+    .from('expenses')
+    .select('amount, transaction_date')
+    .eq('church_id', churchId)
+    .gte('transaction_date', startDate)
+    .lte('transaction_date', endDate)
+
+  const totalRevenue = revenues?.reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0
+  const totalExpense = expenses?.reduce((sum, e) => sum + Number(e.amount || 0), 0) || 0
+  const balance = totalRevenue - totalExpense
+
+  // Calcular ano anterior para variação
+  const prevYear = year - 1
+  const prevStartDate = new Date(prevYear, 0, 1).toISOString().split('T')[0]
+  const prevEndDate = new Date(prevYear, 11, 31).toISOString().split('T')[0]
+
+  // Buscar dados do ano anterior
+  const { data: prevRevenues } = await supabase
+    .from('revenues')
+    .select('amount')
+    .eq('church_id', churchId)
+    .gte('transaction_date', prevStartDate)
+    .lte('transaction_date', prevEndDate)
+
+  const { data: prevExpenses } = await supabase
+    .from('expenses')
+    .select('amount')
+    .eq('church_id', churchId)
+    .gte('transaction_date', prevStartDate)
+    .lte('transaction_date', prevEndDate)
+
+  const prevTotalRevenue = prevRevenues?.reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0
+  const prevTotalExpense = prevExpenses?.reduce((sum, e) => sum + Number(e.amount || 0), 0) || 0
+  const prevBalance = prevTotalRevenue - prevTotalExpense
+
+  const variation = balance - prevBalance
+  const variationPercent = prevBalance !== 0 ? (variation / Math.abs(prevBalance)) * 100 : 0
+
+  // Agrupar dados por mês
+  const monthlyData = groupByMonth(revenues || [], expenses || [])
+  
+  // Garantir que todos os 12 meses estejam presentes
+  const allMonths = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 
+                     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro']
+  
+  const completeMonthlyData = allMonths.map((monthName, index) => {
+    const monthKey = `${year}-${String(index + 1).padStart(2, '0')}`
+    const existingData = monthlyData.find(m => m.month === monthKey)
+    
+    return {
+      month: monthName,
+      revenue: existingData?.revenue || 0,
+      expense: existingData?.expense || 0,
+      balance: (existingData?.revenue || 0) - (existingData?.expense || 0),
+    }
+  })
+
+  return {
+    error: null,
+    data: {
+      year,
+      totalRevenue,
+      totalExpense,
+      balance,
+      variation,
+      variationPercent,
+      monthlyData: completeMonthlyData,
+    },
+  }
+}
+
+/**
+ * Obter dados para relatório de Dízimos por Membro
+ */
+export async function getTithesByMemberReport(year?: number) {
+  const supabase = await createClient()
+  const { churchId, error: churchError } = await getChurchId()
+
+  if (churchError || !churchId) {
+    return { error: churchError || 'Erro ao obter igreja', data: null }
+  }
+
+  // Se não especificar ano, usar ano atual
+  const currentYear = year || new Date().getFullYear()
+  const startDate = new Date(currentYear, 0, 1).toISOString().split('T')[0]
+  const endDate = new Date(currentYear, 11, 31).toISOString().split('T')[0]
+
+  // Buscar todas as receitas que são dízimos (têm member_id) do ano
+  const { data: tithes, error: tithesError } = await supabase
+    .from('revenues')
+    .select(`
+      id,
+      amount,
+      transaction_date,
+      member_id,
+      members(id, full_name, status)
+    `)
+    .eq('church_id', churchId)
+    .not('member_id', 'is', null)
+    .gte('transaction_date', startDate)
+    .lte('transaction_date', endDate)
+
+  if (tithesError) {
+    return { error: tithesError.message, data: null }
+  }
+
+  // Filtrar apenas membros ativos e processar dados
+  const activeTithes = tithes?.filter(tithe => {
+    const member = tithe.members as any
+    return member && member.status === 'active'
+  }) || []
+
+  // Agrupar por membro
+  const memberTotals: Record<string, {
+    memberId: string
+    memberName: string
+    total: number
+    count: number
+    transactions: Array<{ date: string; amount: number }>
+  }> = {}
+
+  activeTithes.forEach((tithe) => {
+    const memberId = tithe.member_id as string
+    const memberName = (tithe.members as any)?.full_name || 'Membro Desconhecido'
+    const amount = Number(tithe.amount || 0)
+
+    if (!memberTotals[memberId]) {
+      memberTotals[memberId] = {
+        memberId,
+        memberName,
+        total: 0,
+        count: 0,
+        transactions: [],
+      }
+    }
+
+    memberTotals[memberId].total += amount
+    memberTotals[memberId].count += 1
+    memberTotals[memberId].transactions.push({
+      date: tithe.transaction_date,
+      amount,
+    })
+  })
+
+  // Converter para array e ordenar por total (maior primeiro)
+  const memberData = Object.values(memberTotals)
+    .map(member => ({
+      ...member,
+      transactions: member.transactions.sort((a, b) => 
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      ),
+    }))
+    .sort((a, b) => b.total - a.total)
+
+  const totalTithes = memberData.reduce((sum, m) => sum + m.total, 0)
+  const totalMembers = memberData.length
+  const averageTithe = totalMembers > 0 ? totalTithes / totalMembers : 0
+
+  return {
+    error: null,
+    data: {
+      year: currentYear,
+      totalTithes,
+      totalMembers,
+      averageTithe,
+      memberData,
+    },
+  }
+}
+

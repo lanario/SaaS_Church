@@ -25,6 +25,68 @@ function formatCurrency(value: number) {
   }).format(value)
 }
 
+function getTransactionCategory(transaction: Transaction) {
+  const isRevenue = transaction.type === 'revenue'
+  return isRevenue
+    ? transaction.revenue_categories?.name
+    : transaction.expense_categories?.name
+}
+
+function getTransactionDescription(transaction: Transaction) {
+  if (transaction.description) {
+    return transaction.description
+  }
+  
+  const isRevenue = transaction.type === 'revenue'
+  if (isRevenue && transaction.members) {
+    return `Dízimo - ${transaction.members.full_name}`
+  }
+  
+  return 'Transação'
+}
+
+function TransactionRow({ transaction }: { transaction: Transaction }) {
+  const isRevenue = transaction.type === 'revenue'
+  const category = getTransactionCategory(transaction)
+  const description = getTransactionDescription(transaction)
+  
+  return (
+    <tr className="hover:bg-gray-50">
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${
+              isRevenue
+                ? 'bg-green-100 text-green-600'
+                : 'bg-red-100 text-red-600'
+            }`}
+          >
+            {isRevenue ? <FaPlus /> : <FaMinus />}
+          </div>
+          <span className="text-sm font-medium text-gray-700">
+            {description}
+          </span>
+        </div>
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-500">
+        {category || '-'}
+      </td>
+      <td className="px-6 py-4 text-sm text-gray-500">
+        {format(new Date(transaction.transaction_date), 'dd MMM yyyy', {
+          locale: ptBR,
+        })}
+      </td>
+      <td
+        className={`px-6 py-4 text-sm font-bold text-right ${
+          isRevenue ? 'text-green-600' : 'text-red-600'
+        }`}
+      >
+        {isRevenue ? '+' : '-'} {formatCurrency(Number(transaction.amount))}
+      </td>
+    </tr>
+  )
+}
+
 export function RecentTransactions({ transactions }: RecentTransactionsProps) {
   if (transactions.length === 0) {
     return (
@@ -61,52 +123,9 @@ export function RecentTransactions({ transactions }: RecentTransactionsProps) {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {transactions.map((transaction) => {
-              const isRevenue = transaction.type === 'revenue'
-              const category = isRevenue
-                ? transaction.revenue_categories?.name
-                : transaction.expense_categories?.name
-              const description = transaction.description || 
-                (isRevenue && transaction.members 
-                  ? `Dízimo - ${transaction.members.full_name}`
-                  : 'Transação')
-              
-              return (
-                <tr key={transaction.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${
-                          isRevenue
-                            ? 'bg-green-100 text-green-600'
-                            : 'bg-red-100 text-red-600'
-                        }`}
-                      >
-                        {isRevenue ? <FaPlus /> : <FaMinus />}
-                      </div>
-                      <span className="text-sm font-medium text-gray-700">
-                        {description}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {category || '-'}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
-                    {format(new Date(transaction.transaction_date), 'dd MMM yyyy', {
-                      locale: ptBR,
-                    })}
-                  </td>
-                  <td
-                    className={`px-6 py-4 text-sm font-bold text-right ${
-                      isRevenue ? 'text-green-600' : 'text-red-600'
-                    }`}
-                  >
-                    {isRevenue ? '+' : '-'} {formatCurrency(Number(transaction.amount))}
-                  </td>
-                </tr>
-              )
-            })}
+            {transactions.map((transaction) => (
+              <TransactionRow key={transaction.id} transaction={transaction} />
+            ))}
           </tbody>
         </table>
       </div>

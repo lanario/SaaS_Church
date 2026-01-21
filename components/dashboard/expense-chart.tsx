@@ -14,26 +14,35 @@ interface ExpenseChartProps {
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
-export function ExpenseChart({ expenses }: ExpenseChartProps) {
-  const chartData = useMemo(() => {
-    const categoryData: Record<string, { name: string; value: number; color: string }> = {}
+function processExpenseData(expenses: Expense[]) {
+  const categoryData: Record<string, { name: string; value: number; color: string }> = {}
 
-    expenses.forEach((expense) => {
-      const categoryName = expense.expense_categories?.name || 'Sem categoria'
-      const categoryColor = expense.expense_categories?.color || '#6366f1'
-      
-      if (!categoryData[categoryName]) {
-        categoryData[categoryName] = {
-          name: categoryName,
-          value: 0,
-          color: categoryColor,
-        }
+  expenses.forEach((expense) => {
+    const categoryName = expense.expense_categories?.name || 'Sem categoria'
+    const categoryColor = expense.expense_categories?.color || '#6366f1'
+    
+    if (!categoryData[categoryName]) {
+      categoryData[categoryName] = {
+        name: categoryName,
+        value: 0,
+        color: categoryColor,
       }
-      categoryData[categoryName].value += Number(expense.amount)
-    })
+    }
+    categoryData[categoryName].value += Number(expense.amount)
+  })
 
-    return Object.values(categoryData).sort((a, b) => b.value - a.value).slice(0, 6)
-  }, [expenses])
+  return Object.values(categoryData).sort((a, b) => b.value - a.value).slice(0, 6)
+}
+
+function formatCurrencyTooltip(value: number) {
+  return new Intl.NumberFormat('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+  }).format(value)
+}
+
+export function ExpenseChart({ expenses }: ExpenseChartProps) {
+  const chartData = useMemo(() => processExpenseData(expenses), [expenses])
 
   if (chartData.length === 0) {
     return (
@@ -67,14 +76,7 @@ export function ExpenseChart({ expenses }: ExpenseChartProps) {
               <Cell key={`cell-${index}`} fill={entry.color || COLORS[index % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip
-            formatter={(value: number) =>
-              new Intl.NumberFormat('pt-BR', {
-                style: 'currency',
-                currency: 'BRL',
-              }).format(value)
-            }
-          />
+          <Tooltip formatter={formatCurrencyTooltip} />
         </PieChart>
       </ResponsiveContainer>
       <div className="mt-4 space-y-2">

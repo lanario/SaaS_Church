@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { FaCalendarAlt, FaChartLine, FaUsers } from 'react-icons/fa'
+import { FaCalendarAlt, FaChartLine } from 'react-icons/fa'
 import { cn } from '@/lib/utils/cn'
 
 interface ReportTabsProps {
@@ -15,7 +15,6 @@ interface ReportTabsProps {
 const tabs = [
   { id: 'monthly', label: 'Relatório Mensal', icon: FaCalendarAlt },
   { id: 'annual', label: 'Relatório Anual', icon: FaChartLine },
-  { id: 'tithes', label: 'Dízimos por Membro', icon: FaUsers },
 ]
 
 export function ReportTabs({ activeTab, month, year, children }: ReportTabsProps) {
