@@ -1,0 +1,414 @@
+'use server'
+
+import { createClient } from '@/lib/supabase/server'
+import { getChurchId } from '@/lib/utils/get-church-id'
+import type { ReportFilterInput } from '@/lib/validations/reports'
+
+// ============================================
+// RELATÓRIOS FINANCEIROS
+// ============================================
+
+/**
+ * Obter dados para relatório de Receitas vs Despesas
+ */
+export async function getRevenueVsExpenseReport(filters: ReportFilterInput) {
+  const supabase = await createClient()
+  const { churchId, error: churchError } = await getChurchId()
+
+  if (churchError || !churchId) {
+    return { error: churchError || 'Erro ao obter igreja', data: null }
+  }
+
+  // Calcular datas com base no período
+  const { startDate, endDate } = calculateDateRange(filters)
+
+  // Buscar receitas
+  let revenueQuery = supabase
+    .from('revenues')
+    .select('amount, transaction_date, category_id, revenue_categories(name)')
+    .eq('church_id', churchId)
+    .gte('transaction_date', startDate)
+    .lte('transaction_date', endDate)
+
+  if (filters.categoryId) {
+    revenueQuery = revenueQuery.eq('category_id', filters.categoryId)
+  }
+
+  const { data: revenues, error: revenueError } = await revenueQuery
+
+  if (revenueError) {
+    return { error: revenueError.message, data: null }
+  }
+
+  // Buscar despesas
+  let expenseQuery = supabase
+    .from('expenses')
+    .select('amount, transaction_date, category_id, expense_categories(name)')
+    .eq('church_id', churchId)
+    .gte('transaction_date', startDate)
+    .lte('transaction_date', endDate)
+
+  if (filters.categoryId) {
+    expenseQuery = expenseQuery.eq('category_id', filters.categoryId)
+  }
+
+  const { data: expenses, error: expenseError } = await expenseQuery
+
+  if (expenseError) {
+    return { error: expenseError.message, data: null }
+  }
+
+  const totalRevenue = revenues?.reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0
+  const totalExpense = expenses?.reduce((sum, e) => sum + Number(e.amount || 0), 0) || 0
+  const balance = totalRevenue - totalExpense
+
+  // Agrupar por mês
+  const monthlyData = groupByMonth(revenues || [], expenses || [])
+
+  return {
+    error: null,
+    data: {
+      totalRevenue,
+      totalExpense,
+      balance,
+      monthlyData,
+      revenues: revenues || [],
+      expenses: expenses || [],
+    },
+  }
+}
+
+/**
+ * Relatório por categorias
+ */
+export async function getCategoryReport(filters: ReportFilterInput) {
+  const supabase = await createClient()
+  const { churchId, error: churchError } = await getChurchId()
+
+  if (churchError || !churchId) {
+    return { error: churchError || 'Erro ao obter igreja', data: null }
+  }
+
+  const { startDate, endDate } = calculateDateRange(filters)
+
+  // Buscar categorias de receitas com totais
+  const { data: revenueCategories } = await supabase
+    .from('revenue_categories')
+    .select('id, name, color')
+    .eq('church_id', churchId)
+
+  // Buscar categorias de despesas com totais
+  const { data: expenseCategories } = await supabase
+    .from('expense_categories')
+    .select('id, name, color')
+    .eq('church_id', churchId)
+
+  // Calcular totais por categoria de receitas
+  const revenueTotals = await Promise.all(
+    (revenueCategories || []).map(async (category) => {
+      const { data: revenues } = await supabase
+        .from('revenues')
+        .select('amount')
+        .eq('church_id', churchId)
+        .eq('category_id', category.id)
+        .gte('transaction_date', startDate)
+        .lte('transaction_date', endDate)
+
+      const total = revenues?.reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0
+      return { ...category, total, type: 'revenue' as const }
+    })
+  )
+
+  // Calcular totais por categoria de despesas
+  const expenseTotals = await Promise.all(
+    (expenseCategories || []).map(async (category) => {
+      const { data: expenses } = await supabase
+        .from('expenses')
+        .select('amount')
+        .eq('church_id', churchId)
+        .eq('category_id', category.id)
+        .gte('transaction_date', startDate)
+        .lte('transaction_date', endDate)
+
+      const total = expenses?.reduce((sum, e) => sum + Number(e.amount || 0), 0) || 0
+      return { ...category, total, type: 'expense' as const }
+    })
+  )
+
+  return {
+    error: null,
+    data: {
+      revenueCategories: revenueTotals.filter(c => c.total > 0),
+      expenseCategories: expenseTotals.filter(c => c.total > 0),
+    },
+  }
+}
+
+/**
+ * Relatório de fluxo de caixa
+ */
+export async function getCashFlowReport(filters: ReportFilterInput) {
+  const supabase = await createClient()
+  const { churchId, error: churchError } = await getChurchId()
+
+  if (churchError || !churchId) {
+    return { error: churchError || 'Erro ao obter igreja', data: null }
+  }
+
+  const { startDate, endDate } = calculateDateRange(filters)
+
+  // Buscar todas as transações ordenadas por data
+  const { data: revenues } = await supabase
+    .from('revenues')
+    .select('amount, transaction_date')
+    .eq('church_id', churchId)
+    .gte('transaction_date', startDate)
+    .lte('transaction_date', endDate)
+    .order('transaction_date', { ascending: true })
+
+  const { data: expenses } = await supabase
+    .from('expenses')
+    .select('amount, transaction_date')
+    .eq('church_id', churchId)
+    .gte('transaction_date', startDate)
+    .lte('transaction_date', endDate)
+    .order('transaction_date', { ascending: true })
+
+  // Calcular saldo acumulado dia a dia
+  const dailyBalances = calculateDailyBalances(revenues || [], expenses || [], startDate, endDate)
+
+  return {
+    error: null,
+    data: {
+      dailyBalances,
+      startingBalance: dailyBalances[0]?.balance || 0,
+      endingBalance: dailyBalances[dailyBalances.length - 1]?.balance || 0,
+    },
+  }
+}
+
+// ============================================
+// FUNÇÕES AUXILIARES
+// ============================================
+
+function calculateDateRange(filters: ReportFilterInput) {
+  const now = new Date()
+  let startDate: string
+  let endDate: string
+
+  if (filters.period === 'month' && filters.month && filters.year) {
+    startDate = new Date(filters.year, filters.month - 1, 1).toISOString().split('T')[0]
+    endDate = new Date(filters.year, filters.month, 0).toISOString().split('T')[0]
+  } else if (filters.period === 'quarter' && filters.quarter && filters.year) {
+    const startMonth = (filters.quarter - 1) * 3
+    startDate = new Date(filters.year, startMonth, 1).toISOString().split('T')[0]
+    endDate = new Date(filters.year, startMonth + 3, 0).toISOString().split('T')[0]
+  } else if (filters.period === 'year' && filters.year) {
+    startDate = new Date(filters.year, 0, 1).toISOString().split('T')[0]
+    endDate = new Date(filters.year, 11, 31).toISOString().split('T')[0]
+  } else if (filters.startDate && filters.endDate) {
+    startDate = filters.startDate
+    endDate = filters.endDate
+  } else {
+    // Padrão: mês atual
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0]
+  }
+
+  return { startDate, endDate }
+}
+
+function groupByMonth(revenues: any[], expenses: any[]) {
+  const months: Record<string, { revenue: number; expense: number }> = {}
+
+  revenues.forEach((r) => {
+    const month = r.transaction_date.substring(0, 7) // YYYY-MM
+    if (!months[month]) {
+      months[month] = { revenue: 0, expense: 0 }
+    }
+    months[month].revenue += Number(r.amount || 0)
+  })
+
+  expenses.forEach((e) => {
+    const month = e.transaction_date.substring(0, 7) // YYYY-MM
+    if (!months[month]) {
+      months[month] = { revenue: 0, expense: 0 }
+    }
+    months[month].expense += Number(e.amount || 0)
+  })
+
+  return Object.entries(months).map(([month, data]) => ({
+    month,
+    revenue: data.revenue,
+    expense: data.expense,
+    balance: data.revenue - data.expense,
+  }))
+}
+
+function calculateDailyBalances(revenues: any[], expenses: any[], startDate: string, endDate: string) {
+  const balances: Array<{ date: string; revenue: number; expense: number; balance: number }> = []
+  
+  const start = new Date(startDate)
+  const end = new Date(endDate)
+  let currentBalance = 0
+
+  for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+    const dateStr = date.toISOString().split('T')[0]
+    const dayRevenue = revenues
+      .filter(r => r.transaction_date === dateStr)
+      .reduce((sum, r) => sum + Number(r.amount || 0), 0)
+    
+    const dayExpense = expenses
+      .filter(e => e.transaction_date === dateStr)
+      .reduce((sum, e) => sum + Number(e.amount || 0), 0)
+
+    currentBalance += dayRevenue - dayExpense
+
+    balances.push({
+      date: dateStr,
+      revenue: dayRevenue,
+      expense: dayExpense,
+      balance: currentBalance,
+    })
+  }
+
+  return balances
+}
+
+/**
+ * Obter dados para relatório mensal completo
+ */
+export async function getMonthlyReport(month: number, year: number) {
+  const supabase = await createClient()
+  const { churchId, error: churchError } = await getChurchId()
+
+  if (churchError || !churchId) {
+    return { error: churchError || 'Erro ao obter igreja', data: null }
+  }
+
+  const startDate = new Date(year, month - 1, 1).toISOString().split('T')[0]
+  const endDate = new Date(year, month, 0).toISOString().split('T')[0]
+
+  // Buscar receitas do mês
+  const { data: revenues } = await supabase
+    .from('revenues')
+    .select(`
+      id,
+      amount,
+      description,
+      transaction_date,
+      revenue_categories(name),
+      member_id
+    `)
+    .eq('church_id', churchId)
+    .gte('transaction_date', startDate)
+    .lte('transaction_date', endDate)
+
+  // Buscar despesas do mês
+  const { data: expenses } = await supabase
+    .from('expenses')
+    .select(`
+      id,
+      amount,
+      description,
+      transaction_date,
+      expense_categories(name)
+    `)
+    .eq('church_id', churchId)
+    .gte('transaction_date', startDate)
+    .lte('transaction_date', endDate)
+
+  const totalRevenue = revenues?.reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0
+  const totalExpense = expenses?.reduce((sum, e) => sum + Number(e.amount || 0), 0) || 0
+  const balance = totalRevenue - totalExpense
+
+  // Calcular mês anterior para variação
+  const prevMonth = month === 1 ? 12 : month - 1
+  const prevYear = month === 1 ? year - 1 : year
+  const prevStartDate = new Date(prevYear, prevMonth - 1, 1).toISOString().split('T')[0]
+  const prevEndDate = new Date(prevYear, prevMonth, 0).toISOString().split('T')[0]
+
+  // Buscar dados do mês anterior
+  const { data: prevRevenues } = await supabase
+    .from('revenues')
+    .select('amount')
+    .eq('church_id', churchId)
+    .gte('transaction_date', prevStartDate)
+    .lte('transaction_date', prevEndDate)
+
+  const { data: prevExpenses } = await supabase
+    .from('expenses')
+    .select('amount')
+    .eq('church_id', churchId)
+    .gte('transaction_date', prevStartDate)
+    .lte('transaction_date', prevEndDate)
+
+  const prevTotalRevenue = prevRevenues?.reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0
+  const prevTotalExpense = prevExpenses?.reduce((sum, e) => sum + Number(e.amount || 0), 0) || 0
+  const prevBalance = prevTotalRevenue - prevTotalExpense
+
+  const variation = balance - prevBalance
+  const variationPercent = prevBalance !== 0 ? (variation / Math.abs(prevBalance)) * 100 : 0
+
+  // Criar dados mensais para o gráfico (um ponto para o mês atual)
+  const monthName = new Date(year, month - 1, 1).toLocaleDateString('pt-BR', { month: 'long' })
+  const monthlyData = [{
+    month: monthName.charAt(0).toUpperCase() + monthName.slice(1),
+    revenue: totalRevenue,
+    expense: totalExpense,
+  }]
+
+  // Formatar transações
+  const transactions: Array<{
+    id: string
+    date: string
+    description: string | null
+    category: string | null
+    member: string | null
+    type: 'revenue' | 'expense'
+    amount: number
+  }> = []
+
+  revenues?.forEach((rev) => {
+    transactions.push({
+      id: rev.id,
+      date: rev.transaction_date,
+      description: rev.description,
+      category: rev.revenue_categories?.name || null,
+      member: rev.member_id ? 'Dízimo' : null,
+      type: 'revenue',
+      amount: Number(rev.amount),
+    })
+  })
+
+  expenses?.forEach((exp) => {
+    transactions.push({
+      id: exp.id,
+      date: exp.transaction_date,
+      description: exp.description,
+      category: exp.expense_categories?.name || null,
+      member: null,
+      type: 'expense',
+      amount: Number(exp.amount),
+    })
+  })
+
+  // Ordenar transações por data (mais recente primeiro)
+  transactions.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+  return {
+    error: null,
+    data: {
+      month,
+      year,
+      totalRevenue,
+      totalExpense,
+      balance,
+      variation,
+      variationPercent,
+      monthlyData,
+      transactions,
+    },
+  }
+}
+

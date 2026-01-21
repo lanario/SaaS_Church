@@ -1,0 +1,54 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply font-sans;
+  }
+}
+
+@layer utilities {
+  .glass {
+    @apply bg-white/95 backdrop-blur-md;
+  }
+  
+  .gradient-text {
+    @apply bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent;
+  }
+}
+
+/* Estilos do react-calendar */
+.react-calendar {
+  @apply w-full border-none bg-transparent;
+}
+
+.react-calendar__navigation {
+  @apply flex items-center justify-between mb-4;
+}
+
+.react-calendar__navigation button {
+  @apply text-gray-700 font-semibold hover:text-indigo-600 transition-colors;
+}
+
+.react-calendar__month-view__weekdays {
+  @apply text-xs font-semibold text-gray-500 mb-2;
+}
+
+.react-calendar__tile {
+  @apply p-2 rounded-lg hover:bg-indigo-50 transition-colors;
+}
+
+.react-calendar__tile--active {
+  @apply bg-indigo-600 text-white hover:bg-indigo-700;
+}
+
+.react-calendar__tile--now {
+  @apply bg-indigo-100 text-indigo-700 font-semibold;
+}
+
+.react-calendar__tile--neighboringMonth {
+  @apply text-gray-400;
+}
