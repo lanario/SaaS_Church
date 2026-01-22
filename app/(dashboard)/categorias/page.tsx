@@ -8,8 +8,8 @@ export default async function CategoriasPage() {
   return (
     <div className="flex-1 overflow-y-auto p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800">Categorias</h1>
-        <p className="text-gray-500 mt-1">Gerencie categorias de receitas e despesas</p>
+        <h1 className="text-3xl font-bold text-white">Categorias</h1>
+        <p className="text-slate-300 mt-1">Gerencie categorias de receitas e despesas</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

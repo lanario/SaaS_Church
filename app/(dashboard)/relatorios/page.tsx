@@ -29,10 +29,10 @@ export default async function RelatoriosPage({
             {/* Header */}
             <div className="mb-8">
                 <div className="flex items-center gap-3 mb-2">
-                    <FaFileAlt className="w-8 h-8 text-indigo-600" />
-                    <h1 className="text-3xl font-bold text-gray-800">Relatórios</h1>
+                    <FaFileAlt className="w-8 h-8 text-indigo-400" />
+                    <h1 className="text-3xl font-bold text-white">Relatórios</h1>
                 </div>
-                <p className="text-gray-500 ml-11">
+                <p className="text-slate-300 ml-11">
                     Visualize e analise os dados financeiros da sua igreja com gráficos e relatórios detalhados
                 </p>
             </div>

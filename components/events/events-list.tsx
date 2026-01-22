@@ -3,8 +3,9 @@
 import Link from 'next/link'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { FaCalendarAlt, FaClock, FaMapMarkerAlt } from 'react-icons/fa'
+import { FaCalendarAlt, FaClock, FaMapMarkerAlt, FaEye } from 'react-icons/fa'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils/cn'
 
 interface Event {
@@ -35,10 +36,10 @@ export function EventsList({ events }: EventsListProps) {
     return (
       <Card>
         <CardHeader>
-          <h3 className="font-bold text-gray-800">Próximos Eventos</h3>
+          <h3 className="font-bold text-white">Próximos Eventos</h3>
         </CardHeader>
         <CardContent>
-          <p className="text-gray-500 text-sm text-center py-4">
+          <p className="text-slate-400 text-sm text-center py-4">
             Nenhum evento próximo
           </p>
         </CardContent>
@@ -49,7 +50,7 @@ export function EventsList({ events }: EventsListProps) {
   return (
     <Card>
       <CardHeader>
-        <h3 className="font-bold text-gray-800">Próximos Eventos</h3>
+        <h3 className="font-bold text-white">Próximos Eventos</h3>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -59,19 +60,18 @@ export function EventsList({ events }: EventsListProps) {
             const isTomorrow = format(eventDate, 'yyyy-MM-dd') === format(new Date(today.getTime() + 86400000), 'yyyy-MM-dd')
 
             return (
-              <Link
+              <div
                 key={event.id}
-                href={`/eventos/${event.id}`}
-                className="block p-4 border border-gray-200 rounded-lg hover:border-indigo-300 hover:bg-indigo-50 transition-all"
+                className="p-4 border border-slate-600 rounded-lg"
               >
                 <div className="flex justify-between items-start mb-2">
-                  <h4 className="font-bold text-gray-800">{event.title}</h4>
+                  <h4 className="font-bold text-white">{event.title}</h4>
                   <span className={cn(
                     'px-2 py-1 rounded-full text-xs font-semibold',
-                    event.event_type === 'worship' && 'bg-indigo-100 text-indigo-700',
-                    event.event_type === 'meeting' && 'bg-blue-100 text-blue-700',
-                    event.event_type === 'special' && 'bg-purple-100 text-purple-700',
-                    event.event_type === 'other' && 'bg-gray-100 text-gray-700'
+                    event.event_type === 'worship' && 'bg-indigo-900/50 text-indigo-300',
+                    event.event_type === 'meeting' && 'bg-blue-900/50 text-blue-300',
+                    event.event_type === 'special' && 'bg-purple-900/50 text-purple-300',
+                    event.event_type === 'other' && 'bg-slate-600 text-slate-200'
                   )}>
                     {event.event_type === 'worship' && 'Culto'}
                     {event.event_type === 'meeting' && 'Reunião'}
@@ -79,9 +79,9 @@ export function EventsList({ events }: EventsListProps) {
                     {event.event_type === 'other' && 'Outro'}
                   </span>
                 </div>
-                <div className="space-y-1 text-sm text-gray-600">
+                <div className="space-y-1 text-sm text-slate-300 mb-3">
                   <div className="flex items-center gap-2">
-                    <FaCalendarAlt className="text-indigo-500" />
+                    <FaCalendarAlt className="text-indigo-400" />
                     <span>
                       {isToday && 'Hoje'}
                       {isTomorrow && 'Amanhã'}
@@ -90,24 +90,34 @@ export function EventsList({ events }: EventsListProps) {
                   </div>
                   {event.event_time && (
                     <div className="flex items-center gap-2">
-                      <FaClock className="text-indigo-500" />
+                      <FaClock className="text-indigo-400" />
                       <span>{event.event_time}</span>
                     </div>
                   )}
                   {event.location && (
                     <div className="flex items-center gap-2">
-                      <FaMapMarkerAlt className="text-indigo-500" />
+                      <FaMapMarkerAlt className="text-indigo-400" />
                       <span>{event.location}</span>
                     </div>
                   )}
                 </div>
-              </Link>
+                <Link href={`/eventos/${event.id}`}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="w-full flex items-center justify-center gap-2 text-xs hover:scale-105 active:scale-95 transition-transform duration-200"
+                  >
+                    <FaEye className="w-3 h-3" />
+                    Ver Evento
+                  </Button>
+                </Link>
+              </div>
             )
           })}
         </div>
         <Link
           href="/eventos"
-          className="block mt-4 text-center text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+          className="block mt-4 text-center text-sm text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
         >
           Ver todos os eventos →
         </Link>

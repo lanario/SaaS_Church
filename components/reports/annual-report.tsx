@@ -31,11 +31,11 @@ function SummaryCard({ title, value, color, icon }: { title: string; value: numb
     <Card className="p-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-500 mb-1">{title}</p>
+          <p className="text-sm text-slate-300 mb-1">{title}</p>
           <p className={`text-2xl font-bold ${color}`}>{formatCurrency(value)}</p>
         </div>
         {icon && (
-          <div className={`p-3 rounded-lg ${color.includes('green') ? 'bg-green-100' : color.includes('red') ? 'bg-red-100' : color.includes('blue') ? 'bg-blue-100' : 'bg-purple-100'}`}>
+          <div className={`p-3 rounded-lg ${color.includes('green') ? 'bg-green-900/30' : color.includes('red') ? 'bg-red-900/30' : color.includes('blue') ? 'bg-blue-900/30' : 'bg-purple-900/30'}`}>
             {icon}
           </div>
         )}
@@ -46,15 +46,15 @@ function SummaryCard({ title, value, color, icon }: { title: string; value: numb
 
 function VariationCard({ variation, variationPercent }: { variation: number; variationPercent: number }) {
   const isPositive = variation >= 0
-  const color = isPositive ? 'text-purple-600' : 'text-red-600'
-  const bgColor = isPositive ? 'bg-purple-100' : 'bg-red-100'
-  const icon = isPositive ? <FaArrowUp className="text-purple-600 text-xl" /> : <FaArrowDown className="text-red-600 text-xl" />
+  const color = isPositive ? 'text-purple-400' : 'text-red-400'
+  const bgColor = isPositive ? 'bg-purple-900/30' : 'bg-red-900/30'
+  const icon = isPositive ? <FaArrowUp className="text-purple-400 text-xl" /> : <FaArrowDown className="text-red-400 text-xl" />
   
   return (
     <Card className="p-6">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-sm text-gray-500 mb-1">Variação vs Ano Anterior</p>
+          <p className="text-sm text-slate-300 mb-1">Variação vs Ano Anterior</p>
           <p className={`text-2xl font-bold ${color}`}>
             {isPositive ? '↑' : '↓'} {formatCurrency(Math.abs(variation))} ({variationPercent.toFixed(1)}%)
           </p>
@@ -70,10 +70,10 @@ function VariationCard({ variation, variationPercent }: { variation: number; var
 function MonthlySummaryTable({ monthlyData }: { monthlyData: Array<{ month: string; revenue: number; expense: number; balance: number }> }) {
   return (
     <Card className="p-6">
-      <h3 className="text-lg font-bold text-gray-800 mb-4">Resumo por Mês</h3>
+      <h3 className="text-lg font-bold text-white mb-4">Resumo por Mês</h3>
       <div className="overflow-x-auto">
         <table className="w-full text-left">
-          <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
+          <thead className="bg-slate-600 text-slate-300 text-xs uppercase font-semibold">
             <tr>
               <th className="px-6 py-3">MÊS</th>
               <th className="px-6 py-3 text-right">ENTRADAS</th>
@@ -81,17 +81,17 @@ function MonthlySummaryTable({ monthlyData }: { monthlyData: Array<{ month: stri
               <th className="px-6 py-3 text-right">SALDO</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-slate-600">
             {monthlyData.map((item, index) => (
-              <tr key={item.month} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
-                <td className="px-6 py-4 font-medium text-gray-700">{item.month}</td>
-                <td className="px-6 py-4 text-right text-green-600 font-semibold">
+              <tr key={item.month} className={index % 2 === 0 ? 'bg-slate-700' : 'bg-slate-600/50'}>
+                <td className="px-6 py-4 font-medium text-white">{item.month}</td>
+                <td className="px-6 py-4 text-right text-green-400 font-semibold">
                   {formatCurrency(item.revenue)}
                 </td>
-                <td className="px-6 py-4 text-right text-red-600 font-semibold">
+                <td className="px-6 py-4 text-right text-red-400 font-semibold">
                   {formatCurrency(item.expense)}
                 </td>
-                <td className={`px-6 py-4 text-right font-semibold ${item.balance >= 0 ? 'text-blue-600' : 'text-red-600'}`}>
+                <td className={`px-6 py-4 text-right font-semibold ${item.balance >= 0 ? 'text-blue-400' : 'text-red-400'}`}>
                   {formatCurrency(item.balance)}
                 </td>
               </tr>
@@ -128,7 +128,7 @@ export function AnnualReport({ data }: AnnualReportProps) {
     <div className="space-y-6">
       {/* Título */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-800">Relatório Anual de {data.year}</h2>
+        <h2 className="text-2xl font-bold text-white">Relatório Anual de {data.year}</h2>
       </div>
 
       {/* Cards de Resumo */}
@@ -136,19 +136,19 @@ export function AnnualReport({ data }: AnnualReportProps) {
         <SummaryCard
           title="Total de Entradas"
           value={data.totalRevenue}
-          color="text-green-600"
-          icon={<FaArrowUp className="text-green-600 text-xl" />}
+          color="text-green-400"
+          icon={<FaArrowUp className="text-green-400 text-xl" />}
         />
         <SummaryCard
           title="Total de Saídas"
           value={data.totalExpense}
-          color="text-red-600"
-          icon={<FaArrowDown className="text-red-600 text-xl" />}
+          color="text-red-400"
+          icon={<FaArrowDown className="text-red-400 text-xl" />}
         />
         <SummaryCard
           title="Saldo Anual"
           value={data.balance}
-          color="text-blue-600"
+          color="text-blue-400"
         />
         <VariationCard
           variation={data.variation}
@@ -160,23 +160,26 @@ export function AnnualReport({ data }: AnnualReportProps) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Gráfico de Linha */}
         <Card className="p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">Evolução Mensal</h3>
+          <h3 className="text-lg font-bold text-white mb-4">Evolução Mensal</h3>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={lineChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
               <XAxis 
                 dataKey="month" 
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: '#cbd5e1' }}
                 angle={-45}
                 textAnchor="end"
                 height={80}
               />
               <YAxis 
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: '#cbd5e1' }}
                 tickFormatter={formatTooltipValue}
                 domain={[0, yAxisMax]}
               />
-              <Tooltip formatter={formatTooltipValue} />
+              <Tooltip 
+                formatter={formatTooltipValue}
+                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px', color: '#fff' }}
+              />
               <Legend />
               <Line 
                 type="monotone" 
@@ -205,23 +208,26 @@ export function AnnualReport({ data }: AnnualReportProps) {
 
         {/* Gráfico de Barras */}
         <Card className="p-6">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">Entradas vs Saídas</h3>
+          <h3 className="text-lg font-bold text-white mb-4">Entradas vs Saídas</h3>
           <ResponsiveContainer width="100%" height={300}>
             <BarChart data={barChartData}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
               <XAxis 
                 dataKey="month" 
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: '#cbd5e1' }}
                 angle={-45}
                 textAnchor="end"
                 height={80}
               />
               <YAxis 
-                tick={{ fontSize: 12 }}
+                tick={{ fontSize: 12, fill: '#cbd5e1' }}
                 tickFormatter={formatTooltipValue}
                 domain={[0, yAxisMax]}
               />
-              <Tooltip formatter={formatTooltipValue} />
+              <Tooltip 
+                formatter={formatTooltipValue}
+                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px', color: '#fff' }}
+              />
               <Legend />
               <Bar dataKey="Entradas" fill="#10b981" />
               <Bar dataKey="Saídas" fill="#ef4444" />

@@ -41,23 +41,23 @@ export function MonthYearSelector({ currentMonth, currentYear }: MonthYearSelect
   ]
 
   return (
-    <div className="flex items-center justify-center gap-4 bg-white rounded-lg border border-gray-200 p-4 w-fit mx-auto">
+    <div className="flex items-center justify-center gap-4 bg-slate-700 rounded-lg border border-slate-600 p-4 w-fit mx-auto">
       <button
         onClick={handlePreviousMonth}
-        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        className="p-2 hover:bg-slate-600 rounded-lg transition-colors"
         aria-label="Mês anterior"
       >
-        <FaChevronLeft className="w-4 h-4 text-gray-600" />
+        <FaChevronLeft className="w-4 h-4 text-slate-300" />
       </button>
-      <span className="text-lg font-semibold text-gray-800 min-w-[200px] text-center">
+      <span className="text-lg font-semibold text-white min-w-[200px] text-center">
         {monthNames[currentMonth - 1]} de {currentYear}
       </span>
       <button
         onClick={handleNextMonth}
-        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        className="p-2 hover:bg-slate-600 rounded-lg transition-colors"
         aria-label="Próximo mês"
       >
-        <FaChevronRight className="w-4 h-4 text-gray-600" />
+        <FaChevronRight className="w-4 h-4 text-slate-300" />
       </button>
     </div>
   )

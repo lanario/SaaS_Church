@@ -45,36 +45,36 @@ interface RevenueRowProps {
 
 function RevenueRow({ revenue, onDelete, isDeleting }: RevenueRowProps) {
   return (
-    <tr className="hover:bg-gray-50">
+    <tr className="hover:bg-slate-600 transition-colors">
       <td className="px-6 py-4">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs">
+          <div className="w-8 h-8 rounded-full bg-green-900/30 text-green-400 flex items-center justify-center text-xs">
             <FaPlus />
           </div>
-          <span className="text-sm font-medium text-gray-700">
+          <span className="text-sm font-medium text-white">
             {getRevenueDescription(revenue)}
           </span>
         </div>
       </td>
-      <td className="px-6 py-4 text-sm text-gray-500">
+      <td className="px-6 py-4 text-sm text-slate-300">
         {revenue.revenue_categories?.name || '-'}
       </td>
-      <td className="px-6 py-4 text-sm text-gray-500">
+      <td className="px-6 py-4 text-sm text-slate-300">
         {format(new Date(revenue.transaction_date), 'dd MMM yyyy', {
           locale: ptBR,
         })}
       </td>
-      <td className="px-6 py-4 text-sm text-gray-500 capitalize">
+      <td className="px-6 py-4 text-sm text-slate-300 capitalize">
         {revenue.payment_method}
       </td>
-      <td className="px-6 py-4 text-sm font-bold text-green-600 text-right">
+      <td className="px-6 py-4 text-sm font-bold text-green-400 text-right">
         {formatCurrency(Number(revenue.amount))}
       </td>
       <td className="px-6 py-4 text-right">
         <button
           onClick={() => onDelete(revenue.id)}
           disabled={isDeleting}
-          className="text-red-600 hover:text-red-700 disabled:opacity-50"
+          className="text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
         >
           <FaTrash />
         </button>
@@ -105,16 +105,16 @@ export function RevenueList({ revenues, categories }: RevenueListProps) {
   if (revenues.length === 0) {
     return (
       <Card className="p-8 text-center">
-        <p className="text-gray-500">Nenhuma receita cadastrada ainda.</p>
+        <p className="text-slate-400">Nenhuma receita cadastrada ainda.</p>
       </Card>
     )
   }
 
   return (
-    <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+    <div className="bg-slate-700 rounded-xl border border-slate-600 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-left">
-          <thead className="bg-gray-50 text-gray-500 text-xs uppercase font-semibold">
+          <thead className="bg-slate-600 text-slate-300 text-xs uppercase font-semibold">
             <tr>
               <th className="px-6 py-4">Descrição</th>
               <th className="px-6 py-4">Categoria</th>
@@ -124,7 +124,7 @@ export function RevenueList({ revenues, categories }: RevenueListProps) {
               <th className="px-6 py-4 text-right">Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody className="divide-y divide-slate-600">
             {revenues.map((revenue) => (
               <RevenueRow
                 key={revenue.id}

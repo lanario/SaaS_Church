@@ -26,23 +26,23 @@ export function YearSelector({ currentYear }: YearSelectorProps) {
   }
 
   return (
-    <div className="flex items-center justify-center gap-4 bg-white rounded-lg border border-gray-200 p-4 w-fit mx-auto">
+    <div className="flex items-center justify-center gap-4 bg-slate-700 rounded-lg border border-slate-600 p-4 w-fit mx-auto">
       <button
         onClick={handlePreviousYear}
-        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        className="p-2 hover:bg-slate-600 rounded-lg transition-colors"
         aria-label="Ano anterior"
       >
-        <FaChevronLeft className="w-4 h-4 text-gray-600" />
+        <FaChevronLeft className="w-4 h-4 text-slate-300" />
       </button>
-      <span className="text-lg font-semibold text-gray-800 min-w-[120px] text-center">
+      <span className="text-lg font-semibold text-white min-w-[120px] text-center">
         {currentYear}
       </span>
       <button
         onClick={handleNextYear}
-        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        className="p-2 hover:bg-slate-600 rounded-lg transition-colors"
         aria-label="Próximo ano"
       >
-        <FaChevronRight className="w-4 h-4 text-gray-600" />
+        <FaChevronRight className="w-4 h-4 text-slate-300" />
       </button>
     </div>
   )

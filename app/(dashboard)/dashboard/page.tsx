@@ -6,6 +6,8 @@ import { RecentTransactions } from '@/components/dashboard/recent-transactions'
 import { RevenueChart } from '@/components/dashboard/revenue-chart'
 import { ExpenseChart } from '@/components/dashboard/expense-chart'
 import { SimpleCalendar } from '@/components/dashboard/simple-calendar'
+import { UpcomingEvents } from '@/components/dashboard/upcoming-events'
+import { PastEvents } from '@/components/dashboard/past-events'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -26,6 +28,16 @@ export default async function DashboardPage() {
   const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0)
   const { data: events } = await getEvents(startOfMonth, endOfMonth)
 
+  // Buscar eventos futuros (próximos 30 dias)
+  const futureEndDate = new Date(today)
+  futureEndDate.setDate(futureEndDate.getDate() + 30)
+  const { data: upcomingEvents } = await getEvents(today, futureEndDate, false) // Sem aniversários
+
+  // Buscar eventos passados (últimos 30 dias)
+  const pastStartDate = new Date(today)
+  pastStartDate.setDate(pastStartDate.getDate() - 30)
+  const { data: pastEvents } = await getEvents(pastStartDate, today, false) // Sem aniversários
+
   // Verificar erros
   if (stats.error) {
     // Separar mensagens por quebra de linha se houver
@@ -33,11 +45,11 @@ export default async function DashboardPage() {
     
     return (
       <div className="flex-1 overflow-y-auto p-8">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6 max-w-2xl mx-auto">
-          <h3 className="text-lg font-bold text-amber-800 mb-2">Atenção</h3>
+        <div className="bg-amber-900/30 border border-amber-700 rounded-xl p-6 max-w-2xl mx-auto">
+          <h3 className="text-lg font-bold text-amber-300 mb-2">Atenção</h3>
           <div className="space-y-2">
             {errorMessages.map((message, index) => (
-              <p key={index} className={`text-amber-700 ${index > 0 ? 'text-sm' : ''}`}>
+              <p key={index} className={`text-amber-200 ${index > 0 ? 'text-sm' : ''}`}>
                 {message}
               </p>
             ))}
@@ -69,6 +81,8 @@ export default async function DashboardPage() {
         <div className="space-y-8">
           <RevenueChart revenues={revenues || []} />
           <ExpenseChart expenses={expenses || []} />
+          <UpcomingEvents events={upcomingEvents || []} />
+          <PastEvents events={pastEvents || []} />
         </div>
       </div>
     </div>

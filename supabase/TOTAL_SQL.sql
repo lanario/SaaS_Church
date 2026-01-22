@@ -131,10 +131,34 @@ CREATE TABLE IF NOT EXISTS events (
   event_type VARCHAR(50) DEFAULT 'worship', -- 'worship', 'meeting', 'special', 'other'
   whatsapp_message TEXT,
   is_public BOOLEAN DEFAULT true,
+  estimated_members INTEGER DEFAULT 0 CHECK (estimated_members >= 0),
+  estimated_visitors INTEGER DEFAULT 0 CHECK (estimated_visitors >= 0),
+  actual_members INTEGER DEFAULT NULL CHECK (actual_members IS NULL OR actual_members >= 0),
+  actual_visitors INTEGER DEFAULT NULL CHECK (actual_visitors IS NULL OR actual_visitors >= 0),
   created_by UUID REFERENCES auth.users(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+-- Adicionar colunas de presença se não existirem (para tabelas já criadas)
+DO $$ 
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'events' AND column_name = 'estimated_members') THEN
+    ALTER TABLE events ADD COLUMN estimated_members INTEGER DEFAULT 0 CHECK (estimated_members >= 0);
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'events' AND column_name = 'estimated_visitors') THEN
+    ALTER TABLE events ADD COLUMN estimated_visitors INTEGER DEFAULT 0 CHECK (estimated_visitors >= 0);
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'events' AND column_name = 'actual_members') THEN
+    ALTER TABLE events ADD COLUMN actual_members INTEGER DEFAULT NULL CHECK (actual_members IS NULL OR actual_members >= 0);
+  END IF;
+  
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'events' AND column_name = 'actual_visitors') THEN
+    ALTER TABLE events ADD COLUMN actual_visitors INTEGER DEFAULT NULL CHECK (actual_visitors IS NULL OR actual_visitors >= 0);
+  END IF;
+END $$;
 
 -- Tabela de Confirmações de Presença
 CREATE TABLE IF NOT EXISTS event_attendances (
@@ -178,6 +202,29 @@ CREATE TABLE IF NOT EXISTS church_invites (
   UNIQUE(church_id, email, status) -- Um convite ativo por email por igreja
 );
 
+-- Tabela de Fundo de Reserva
+CREATE TABLE IF NOT EXISTS reserve_fund (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  church_id UUID REFERENCES churches(id) ON DELETE CASCADE NOT NULL,
+  balance DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (balance >= 0),
+  last_transfer_date DATE, -- Data da última transferência automática
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(church_id)
+);
+
+-- Tabela de Movimentações do Fundo de Reserva
+CREATE TABLE IF NOT EXISTS reserve_fund_transactions (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  reserve_fund_id UUID REFERENCES reserve_fund(id) ON DELETE CASCADE NOT NULL,
+  church_id UUID REFERENCES churches(id) ON DELETE CASCADE NOT NULL,
+  transaction_type VARCHAR(50) NOT NULL, -- 'deposit', 'withdrawal', 'auto_transfer'
+  amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
+  description TEXT,
+  created_by UUID REFERENCES auth.users(id),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- ============================================
 -- ÍNDICES PARA PERFORMANCE
 -- ============================================
@@ -200,6 +247,10 @@ CREATE INDEX IF NOT EXISTS idx_church_invites_token ON church_invites(token);
 CREATE INDEX IF NOT EXISTS idx_church_invites_status ON church_invites(status);
 CREATE INDEX IF NOT EXISTS idx_revenue_categories_church_id ON revenue_categories(church_id);
 CREATE INDEX IF NOT EXISTS idx_expense_categories_church_id ON expense_categories(church_id);
+CREATE INDEX IF NOT EXISTS idx_reserve_fund_church_id ON reserve_fund(church_id);
+CREATE INDEX IF NOT EXISTS idx_reserve_fund_transactions_reserve_fund_id ON reserve_fund_transactions(reserve_fund_id);
+CREATE INDEX IF NOT EXISTS idx_reserve_fund_transactions_church_id ON reserve_fund_transactions(church_id);
+CREATE INDEX IF NOT EXISTS idx_reserve_fund_transactions_created_at ON reserve_fund_transactions(created_at);
 
 -- ============================================
 -- FUNÇÕES E TRIGGERS
@@ -255,6 +306,10 @@ CREATE TRIGGER update_user_permissions_updated_at
 CREATE TRIGGER update_church_invites_updated_at 
   BEFORE UPDATE ON church_invites
   FOR EACH ROW EXECUTE FUNCTION update_church_invites_updated_at();
+
+CREATE TRIGGER update_reserve_fund_updated_at 
+  BEFORE UPDATE ON reserve_fund
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
 -- FUNÇÃO PARA OWNERS VEREM USUÁRIOS
@@ -387,6 +442,108 @@ $$;
 GRANT EXECUTE ON FUNCTION create_member_profile(UUID, UUID, VARCHAR, VARCHAR, VARCHAR) TO authenticated;
 
 -- ============================================
+-- FUNÇÃO PARA TRANSFERÊNCIA AUTOMÁTICA DO FUNDO DE RESERVA
+-- ============================================
+
+CREATE OR REPLACE FUNCTION auto_transfer_reserve_fund()
+RETURNS TABLE (
+  church_id UUID,
+  transferred_amount DECIMAL,
+  success BOOLEAN,
+  message TEXT
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_church RECORD;
+  v_reserve_fund RECORD;
+  v_cash_balance DECIMAL;
+  v_total_revenues DECIMAL;
+  v_total_expenses DECIMAL;
+  v_today DATE;
+  v_first_day_of_month DATE;
+BEGIN
+  v_today := CURRENT_DATE;
+  v_first_day_of_month := DATE_TRUNC('month', v_today)::DATE;
+
+  -- Iterar sobre todas as igrejas
+  FOR v_church IN SELECT id FROM churches LOOP
+    -- Verificar se já transferiu este mês
+    SELECT * INTO v_reserve_fund
+    FROM reserve_fund
+    WHERE reserve_fund.church_id = v_church.id;
+
+    -- Se não existe fundo de reserva, criar
+    IF v_reserve_fund IS NULL THEN
+      INSERT INTO reserve_fund (church_id, balance, last_transfer_date)
+      VALUES (v_church.id, 0, NULL)
+      RETURNING * INTO v_reserve_fund;
+    END IF;
+
+    -- Verificar se já transferiu este mês
+    IF v_reserve_fund.last_transfer_date IS NOT NULL AND
+       v_reserve_fund.last_transfer_date >= v_first_day_of_month THEN
+      -- Já transferiu este mês, pular
+      CONTINUE;
+    END IF;
+
+    -- Calcular saldo em caixa (receitas - despesas)
+    SELECT COALESCE(SUM(amount), 0) INTO v_total_revenues
+    FROM revenues
+    WHERE church_id = v_church.id;
+
+    SELECT COALESCE(SUM(amount), 0) INTO v_total_expenses
+    FROM expenses
+    WHERE church_id = v_church.id;
+
+    v_cash_balance := v_total_revenues - v_total_expenses;
+
+    -- Se não há saldo, pular
+    IF v_cash_balance <= 0 THEN
+      CONTINUE;
+    END IF;
+
+    -- Criar transação de transferência automática
+    INSERT INTO reserve_fund_transactions (
+      reserve_fund_id,
+      church_id,
+      transaction_type,
+      amount,
+      description,
+      created_by
+    ) VALUES (
+      v_reserve_fund.id,
+      v_church.id,
+      'auto_transfer',
+      v_cash_balance,
+      'Transferência automática de ' || TO_CHAR(v_today, 'DD/MM/YYYY'),
+      NULL -- Sistema automático
+    );
+
+    -- Atualizar saldo e data da última transferência
+    UPDATE reserve_fund
+    SET
+      balance = balance + v_cash_balance,
+      last_transfer_date = v_today
+    WHERE id = v_reserve_fund.id;
+
+    -- Retornar sucesso
+    church_id := v_church.id;
+    transferred_amount := v_cash_balance;
+    success := TRUE;
+    message := 'Transferência realizada com sucesso';
+    RETURN NEXT;
+
+  END LOOP;
+
+  RETURN;
+END;
+$$;
+
+GRANT EXECUTE ON FUNCTION auto_transfer_reserve_fund() TO authenticated;
+
+-- ============================================
 -- ROW LEVEL SECURITY (RLS)
 -- ============================================
 
@@ -402,6 +559,8 @@ ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE event_attendances ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_permissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE church_invites ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reserve_fund ENABLE ROW LEVEL SECURITY;
+ALTER TABLE reserve_fund_transactions ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- POLICIES - USER_PROFILES (SEM RECURSÃO)
@@ -784,6 +943,74 @@ CREATE POLICY "Users can accept their invite"
   WITH CHECK (
     status = 'accepted'
     AND accepted_at IS NOT NULL
+  );
+
+-- ============================================
+-- POLICIES - RESERVE_FUND
+-- ============================================
+
+DO $$ 
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'reserve_fund' AND schemaname = 'public') LOOP
+        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON reserve_fund';
+    END LOOP;
+END $$;
+
+CREATE POLICY "Users can view their church reserve fund"
+  ON reserve_fund FOR SELECT
+  USING (
+    church_id IN (
+      SELECT church_id FROM user_profiles
+      WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Owners and treasurers can manage reserve fund"
+  ON reserve_fund FOR ALL
+  USING (
+    church_id IN (
+      SELECT church_id FROM user_profiles
+      WHERE id = auth.uid() AND role IN ('owner', 'treasurer')
+    )
+  )
+  WITH CHECK (
+    church_id IN (
+      SELECT church_id FROM user_profiles
+      WHERE id = auth.uid() AND role IN ('owner', 'treasurer')
+    )
+  );
+
+-- ============================================
+-- POLICIES - RESERVE_FUND_TRANSACTIONS
+-- ============================================
+
+DO $$ 
+DECLARE
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'reserve_fund_transactions' AND schemaname = 'public') LOOP
+        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON reserve_fund_transactions';
+    END LOOP;
+END $$;
+
+CREATE POLICY "Users can view their church reserve fund transactions"
+  ON reserve_fund_transactions FOR SELECT
+  USING (
+    church_id IN (
+      SELECT church_id FROM user_profiles
+      WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Owners and treasurers can create reserve fund transactions"
+  ON reserve_fund_transactions FOR INSERT
+  WITH CHECK (
+    church_id IN (
+      SELECT church_id FROM user_profiles
+      WHERE id = auth.uid() AND role IN ('owner', 'treasurer')
+    )
   );
 
 -- ============================================

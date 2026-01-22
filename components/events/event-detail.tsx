@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { AttendanceList } from './attendance-list'
 import { WhatsAppSendModal } from './whatsapp-send-modal'
 import { MemberAttendance } from './member-attendance'
+import { EventAttendanceForm } from './event-attendance-form'
 
 interface Event {
   id: string
@@ -24,6 +25,10 @@ interface Event {
   whatsapp_message?: string | null
   is_public: boolean
   created_by?: string | null
+  estimated_members?: number | null
+  estimated_visitors?: number | null
+  actual_members?: number | null
+  actual_visitors?: number | null
 }
 
 interface Attendance {
@@ -210,6 +215,16 @@ export function EventDetail({ event, attendances, stats }: EventDetailProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Formulário de Presença Real */}
+      <EventAttendanceForm
+        eventId={event.id}
+        estimatedMembers={event.estimated_members || 0}
+        estimatedVisitors={event.estimated_visitors || 0}
+        actualMembers={event.actual_members ?? null}
+        actualVisitors={event.actual_visitors ?? null}
+        eventDate={event.event_date}
+      />
 
       {/* Confirmação de Presença (para membros) */}
       <MemberAttendance eventId={event.id} />

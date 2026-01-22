@@ -2,6 +2,7 @@ import { getEvents } from '@/app/actions/events'
 import { hasAcceptedInvite } from '@/app/actions/invites'
 import { SimpleCalendar } from '@/components/dashboard/simple-calendar'
 import { EventsList } from '@/components/events/events-list'
+import { PastEvents } from '@/components/dashboard/past-events'
 import { CreateEventButton } from '@/components/events/create-event-button'
 import { createClient } from '@/lib/supabase/server'
 import { Card } from '@/components/ui/card'
@@ -38,21 +39,26 @@ export default async function EventosPage() {
 
   const { data: events, error } = await getEvents(startOfMonth, endOfMonth, true)
 
+  // Buscar eventos passados (últimos 30 dias) para o histórico
+  const pastStartDate = new Date(today)
+  pastStartDate.setDate(pastStartDate.getDate() - 30)
+  const { data: pastEvents } = await getEvents(pastStartDate, today, false) // Sem aniversários
+
   // Se não tem convite, mostrar mensagem
   if (!hasInvite && !isOwnerOrTreasurer) {
     return (
       <div className="flex-1 overflow-y-auto p-8">
         <Card className="p-6 max-w-2xl mx-auto">
           <div className="flex items-center gap-3 mb-4">
-            <FaExclamationTriangle className="w-6 h-6 text-yellow-600" />
-            <h2 className="text-xl font-bold text-gray-900">Acesso aos Eventos</h2>
+            <FaExclamationTriangle className="w-6 h-6 text-yellow-400" />
+            <h2 className="text-xl font-bold text-white">Acesso aos Eventos</h2>
           </div>
-          <p className="text-gray-600 mb-4">
+          <p className="text-slate-300 mb-4">
             Para ter acesso aos eventos da igreja, você precisa receber um convite.
             Entre em contato com o administrador da igreja para solicitar um convite.
           </p>
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <p className="text-sm text-yellow-800">
+          <div className="bg-yellow-900/30 border border-yellow-700 rounded-lg p-4">
+            <p className="text-sm text-yellow-200">
               <strong>Importante:</strong> Assim que você receber e aceitar um convite, 
               você terá acesso completo aos eventos da igreja.
             </p>
@@ -65,7 +71,7 @@ export default async function EventosPage() {
   if (error) {
     return (
       <div className="p-8">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-600">
+        <div className="bg-red-900/30 border border-red-700 rounded-xl p-4 text-red-300">
           Erro ao carregar eventos: {error}
         </div>
       </div>
@@ -76,8 +82,8 @@ export default async function EventosPage() {
     <div className="flex-1 overflow-y-auto p-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Eventos</h1>
-          <p className="text-gray-500 mt-1">Gerencie eventos e cultos da igreja</p>
+          <h1 className="text-3xl font-bold text-white">Eventos</h1>
+          <p className="text-slate-300 mt-1">Gerencie eventos e cultos da igreja</p>
         </div>
         <CreateEventButton />
       </div>
@@ -86,8 +92,9 @@ export default async function EventosPage() {
         <div className="lg:col-span-2">
           <SimpleCalendar events={events || []} />
         </div>
-        <div>
+        <div className="space-y-8">
           <EventsList events={events || []} />
+          <PastEvents events={pastEvents || []} noHover />
         </div>
       </div>
     </div>

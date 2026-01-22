@@ -164,6 +164,39 @@ export function EventForm({ event, mode = 'create' }: EventFormProps) {
             </p>
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Membros Estimados
+              </label>
+              <Input
+                type="number"
+                min="0"
+                placeholder="0"
+                error={errors.estimatedMembers?.message}
+                {...register('estimatedMembers', { valueAsNumber: true })}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Quantidade estimada de membros que participarão
+              </p>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">
+                Visitantes Estimados
+              </label>
+              <Input
+                type="number"
+                min="0"
+                placeholder="0"
+                error={errors.estimatedVisitors?.message}
+                {...register('estimatedVisitors', { valueAsNumber: true })}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Quantidade estimada de visitantes
+              </p>
+            </div>
+          </div>
+
           <div className="flex items-center gap-2">
             <input
               type="checkbox"

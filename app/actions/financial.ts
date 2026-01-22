@@ -328,6 +328,7 @@ export async function createRevenueCategory(data: RevenueCategoryInput) {
     return { error: error.message }
   }
 
+  revalidatePath('/categorias')
   revalidatePath('/dashboard')
   return { success: true }
 }
@@ -356,6 +357,33 @@ export async function getRevenueCategories() {
   return { data, error: null }
 }
 
+export async function updateRevenueCategory(id: string, data: RevenueCategoryInput) {
+  const supabase = await createClient()
+  const { churchId, error: churchError } = await getChurchId()
+  
+  if (churchError || !churchId) {
+    return { error: churchError || 'Erro ao obter igreja' }
+  }
+
+  const { error } = await supabase
+    .from('revenue_categories')
+    .update({
+      name: data.name,
+      description: data.description || null,
+      color: data.color,
+    })
+    .eq('id', id)
+    .eq('church_id', churchId)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/categorias')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
 export async function deleteRevenueCategory(id: string) {
   const supabase = await createClient()
   const { churchId, error: churchError } = await getChurchId()
@@ -374,6 +402,7 @@ export async function deleteRevenueCategory(id: string) {
     return { error: error.message }
   }
 
+  revalidatePath('/categorias')
   revalidatePath('/dashboard')
   return { success: true }
 }
@@ -403,6 +432,7 @@ export async function createExpenseCategory(data: ExpenseCategoryInput) {
     return { error: error.message }
   }
 
+  revalidatePath('/categorias')
   revalidatePath('/dashboard')
   return { success: true }
 }
@@ -428,6 +458,33 @@ export async function getExpenseCategories() {
   return { data, error: null }
 }
 
+export async function updateExpenseCategory(id: string, data: ExpenseCategoryInput) {
+  const supabase = await createClient()
+  const { churchId, error: churchError } = await getChurchId()
+  
+  if (churchError || !churchId) {
+    return { error: churchError || 'Erro ao obter igreja' }
+  }
+
+  const { error } = await supabase
+    .from('expense_categories')
+    .update({
+      name: data.name,
+      description: data.description || null,
+      color: data.color,
+    })
+    .eq('id', id)
+    .eq('church_id', churchId)
+
+  if (error) {
+    return { error: error.message }
+  }
+
+  revalidatePath('/categorias')
+  revalidatePath('/dashboard')
+  return { success: true }
+}
+
 export async function deleteExpenseCategory(id: string) {
   const supabase = await createClient()
   const { churchId, error: churchError } = await getChurchId()
@@ -446,6 +503,7 @@ export async function deleteExpenseCategory(id: string) {
     return { error: error.message }
   }
 
+  revalidatePath('/categorias')
   revalidatePath('/dashboard')
   return { success: true }
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, subMonths, getDay } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { FaChevronLeft, FaChevronRight, FaClock, FaMapMarkerAlt, FaInfoCircle } from 'react-icons/fa'
@@ -25,10 +26,13 @@ interface SimpleCalendarProps {
 }
 
 export function SimpleCalendar({ events = [], onDateClick }: SimpleCalendarProps) {
+  const router = useRouter()
   const [currentDate, setCurrentDate] = useState(new Date())
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null)
   const [tooltipPosition, setTooltipPosition] = useState<{ x: number; y: number } | null>(null)
+  const [isTooltipHovered, setIsTooltipHovered] = useState(false)
   const tooltipRef = useRef<HTMLDivElement>(null)
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const monthStart = startOfMonth(currentDate)
   const monthEnd = endOfMonth(currentDate)
@@ -87,7 +91,14 @@ export function SimpleCalendar({ events = [], onDateClick }: SimpleCalendarProps
   }
 
   function handleMouseEnter(date: Date, event: React.MouseEvent<HTMLButtonElement>) {
+    // Cancelar qualquer timeout pendente
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current)
+      hideTimeoutRef.current = null
+    }
+
     if (hasEvent(date)) {
+      setIsTooltipHovered(false)
       setHoveredDate(date)
       const rect = event.currentTarget.getBoundingClientRect()
       const viewportWidth = window.innerWidth
@@ -109,8 +120,39 @@ export function SimpleCalendar({ events = [], onDateClick }: SimpleCalendarProps
   }
 
   function handleMouseLeave() {
+    // Se o tooltip já está sendo hovered, não fechar
+    if (isTooltipHovered) {
+      return
+    }
+
+    // Adicionar delay antes de fechar para permitir que o mouse entre no tooltip
+    hideTimeoutRef.current = setTimeout(() => {
+      // Verificar novamente se o tooltip não está sendo hovered
+      if (!isTooltipHovered) {
+        setHoveredDate(null)
+        setTooltipPosition(null)
+      }
+    }, 200) // 200ms de delay - tempo suficiente para mover o mouse
+  }
+
+  function handleTooltipMouseEnter() {
+    // Cancelar o timeout e marcar que o tooltip está sendo hovered
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current)
+      hideTimeoutRef.current = null
+    }
+    setIsTooltipHovered(true)
+  }
+
+  function handleTooltipMouseLeave() {
+    // Fechar imediatamente quando o mouse sair do tooltip
+    setIsTooltipHovered(false)
     setHoveredDate(null)
     setTooltipPosition(null)
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current)
+      hideTimeoutRef.current = null
+    }
   }
 
   const daysOfWeek = ['Domingo', 'Segunda-Feira', 'Terça-Feira', 'Quarta-Feira', 'Quinta-Feira', 'Sexta-Feira', 'Sábado']
@@ -121,23 +163,23 @@ export function SimpleCalendar({ events = [], onDateClick }: SimpleCalendarProps
   return (
     <Card className="p-4 md:p-6">
       <div className="mb-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <h3 className="text-lg md:text-xl font-semibold text-gray-800 capitalize">
+        <h3 className="text-lg md:text-xl font-semibold text-white capitalize">
           {format(currentDate, 'MMMM yyyy', { locale: ptBR })}
         </h3>
         <div className="flex items-center gap-2">
           <button
             onClick={handlePreviousMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-slate-600 rounded-lg transition-colors"
             aria-label="Mês anterior"
           >
-            <FaChevronLeft className="w-4 h-4 text-gray-600" />
+            <FaChevronLeft className="w-4 h-4 text-slate-300" />
           </button>
           <button
             onClick={handleNextMonth}
-            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-slate-600 rounded-lg transition-colors"
             aria-label="Próximo mês"
           >
-            <FaChevronRight className="w-4 h-4 text-gray-600" />
+            <FaChevronRight className="w-4 h-4 text-slate-300" />
           </button>
         </div>
       </div>
@@ -149,7 +191,7 @@ export function SimpleCalendar({ events = [], onDateClick }: SimpleCalendarProps
             {daysOfWeek.map((day) => (
               <div
                 key={day}
-                className="text-center py-2 text-xs font-medium text-white bg-gray-700 rounded"
+                className="text-center py-2 text-xs font-medium text-white bg-slate-600 rounded"
               >
                 {day}
               </div>
@@ -159,7 +201,7 @@ export function SimpleCalendar({ events = [], onDateClick }: SimpleCalendarProps
             {daysOfWeekShort.map((day) => (
               <div
                 key={day}
-                className="text-center py-2 text-xs font-medium text-white bg-gray-700 rounded"
+                className="text-center py-2 text-xs font-medium text-white bg-slate-600 rounded"
               >
                 {day}
               </div>
@@ -181,10 +223,10 @@ export function SimpleCalendar({ events = [], onDateClick }: SimpleCalendarProps
                 onMouseLeave={handleMouseLeave}
                 className={`
                   aspect-square rounded-lg transition-all text-sm
-                  ${!isCurrentMonth ? 'text-gray-300' : 'text-gray-600'}
-                  ${isToday ? 'bg-indigo-100 text-indigo-700 font-semibold ring-2 ring-indigo-300' : ''}
-                  ${hasEventOnDay && !isToday ? 'bg-indigo-50 text-indigo-600 hover:bg-indigo-100' : ''}
-                  ${!hasEventOnDay && !isToday && isCurrentMonth ? 'hover:bg-gray-50' : ''}
+                  ${!isCurrentMonth ? 'text-slate-600' : 'text-slate-200'}
+                  ${isToday ? 'bg-indigo-600 text-white font-semibold ring-2 ring-indigo-400' : ''}
+                  ${hasEventOnDay && !isToday ? 'bg-indigo-900/30 text-indigo-300 hover:bg-indigo-900/50' : ''}
+                  ${!hasEventOnDay && !isToday && isCurrentMonth ? 'hover:bg-slate-600' : ''}
                   ${isHovered ? 'ring-2 ring-indigo-400 scale-105' : ''}
                   flex flex-col items-center justify-center relative cursor-pointer
                 `}
@@ -203,20 +245,22 @@ export function SimpleCalendar({ events = [], onDateClick }: SimpleCalendarProps
         </div>
       </div>
 
-      {/* Tooltip com informações do evento */}
+      {/* Tooltip com informações do evento - Agora clicável */}
       {hoveredDate && hoveredEvents.length > 0 && tooltipPosition && (
         <div
           ref={tooltipRef}
-          className="fixed z-50 pointer-events-none"
+          className="fixed z-50 pointer-events-auto"
           style={{
             left: `${tooltipPosition.x}px`,
-            top: `${tooltipPosition.y}px`,
+            top: `${tooltipPosition.y - 5}px`, // Pequeno gap para facilitar transição
             transform: 'translateX(-50%) translateY(-100%)',
           }}
+          onMouseEnter={handleTooltipMouseEnter}
+          onMouseLeave={handleTooltipMouseLeave}
         >
           <div className="bg-gray-900 text-white rounded-lg shadow-xl p-4 max-w-xs min-w-[250px] mb-2 relative">
             {/* Seta do tooltip */}
-            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2">
+            <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 pointer-events-none">
               <div className="border-4 border-transparent border-t-gray-900"></div>
             </div>
             
@@ -258,6 +302,23 @@ export function SimpleCalendar({ events = [], onDateClick }: SimpleCalendarProps
                   {event.description && (
                     <p className="text-xs text-gray-400 mt-2 line-clamp-2">{event.description}</p>
                   )}
+                  
+                  {/* Botão para ver detalhes */}
+                  <button
+                    onClick={() => {
+                      if (!event.is_birthday) {
+                        router.push(`/eventos/${event.id}`)
+                      }
+                    }}
+                    disabled={event.is_birthday}
+                    className={`mt-3 w-full text-xs py-2 px-3 rounded-lg transition-colors ${
+                      event.is_birthday
+                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                        : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                    }`}
+                  >
+                    {event.is_birthday ? 'Aniversário' : 'Ver Detalhes'}
+                  </button>
                 </div>
               </div>
             ))}
@@ -267,19 +328,19 @@ export function SimpleCalendar({ events = [], onDateClick }: SimpleCalendarProps
 
       {/* Legenda */}
       {events.length > 0 && (
-        <div className="mt-4 pt-4 border-t border-gray-200 flex flex-wrap items-center gap-4 text-xs text-gray-600">
+        <div className="mt-4 pt-4 border-t border-slate-600 flex flex-wrap items-center gap-4 text-xs text-slate-300">
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 bg-indigo-600 rounded-full"></span>
+            <span className="w-2 h-2 bg-indigo-400 rounded-full"></span>
             <span>Evento</span>
           </div>
           {events.some(e => e.is_birthday) && (
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 bg-pink-500 rounded-full"></span>
+              <span className="w-2 h-2 bg-pink-400 rounded-full"></span>
               <span>Aniversário</span>
             </div>
           )}
           <div className="flex items-center gap-2">
-            <span className="w-2 h-2 bg-indigo-100 rounded-full border border-indigo-600"></span>
+            <span className="w-2 h-2 bg-indigo-600 rounded-full border border-indigo-400"></span>
             <span>Hoje</span>
           </div>
         </div>

@@ -11,7 +11,8 @@ import {
   FaFileInvoiceDollar, 
   FaCog, 
   FaFolder,
-  FaCalendarAlt
+  FaCalendarAlt,
+  FaPiggyBank
 } from 'react-icons/fa'
 import { cn } from '@/lib/utils/cn'
 
@@ -22,6 +23,7 @@ const menuItems = [
   { href: '/categorias', label: 'Categorias', icon: FaFolder },
   { href: '/membros', label: 'Membros', icon: FaUsers },
   { href: '/eventos', label: 'Eventos', icon: FaCalendarAlt },
+  { href: '/fundo-reserva', label: 'Fundo de Reserva', icon: FaPiggyBank },
   { href: '/relatorios', label: 'Relatórios', icon: FaFileInvoiceDollar },
   { href: '/ajustes', label: 'Ajustes', icon: FaCog },
 ]

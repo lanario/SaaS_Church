@@ -46,9 +46,9 @@ export function RevenueChart({ revenues }: RevenueChartProps) {
 
   if (chartData.length === 0) {
     return (
-      <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-        <h3 className="font-bold text-gray-800 mb-4">Receitas Mensais</h3>
-        <div className="h-64 flex items-center justify-center text-gray-500">
+      <div className="bg-slate-700 p-6 rounded-xl border border-slate-600 shadow-sm">
+        <h3 className="font-bold text-white mb-4">Receitas Mensais</h3>
+        <div className="h-64 flex items-center justify-center text-slate-400">
           <p>Nenhum dado disponível</p>
         </div>
       </div>
@@ -58,8 +58,8 @@ export function RevenueChart({ revenues }: RevenueChartProps) {
   const total = chartData.reduce((sum, item) => sum + item.value, 0)
 
   return (
-    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-      <h3 className="font-bold text-gray-800 mb-4">Receitas Mensais</h3>
+    <div className="bg-slate-700 p-6 rounded-xl border border-slate-600 shadow-sm">
+      <h3 className="font-bold text-white mb-4">Receitas Mensais</h3>
       <ResponsiveContainer width="100%" height={250}>
         <PieChart>
           <Pie
@@ -85,10 +85,10 @@ export function RevenueChart({ revenues }: RevenueChartProps) {
           return (
             <div key={item.name}>
               <div className="flex justify-between text-sm mb-1">
-                <span className="text-gray-500">{item.name}</span>
-                <span className="font-semibold">{percentage}%</span>
+                <span className="text-slate-300">{item.name}</span>
+                <span className="font-semibold text-white">{percentage}%</span>
               </div>
-              <div className="w-full bg-gray-100 rounded-full h-2">
+              <div className="w-full bg-slate-600 rounded-full h-2">
                 <div
                   className="h-2 rounded-full"
                   style={{

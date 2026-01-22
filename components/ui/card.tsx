@@ -9,7 +9,7 @@ function Card({ className, variant = 'default', ...props }: CardProps) {
   return (
     <div
       className={cn(
-        'rounded-2xl border border-slate-100 shadow-xl',
+        'rounded-2xl border border-slate-700 shadow-xl bg-slate-700',
         variant === 'glass' && 'glass',
         className
       )}

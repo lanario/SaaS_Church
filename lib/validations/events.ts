@@ -9,6 +9,14 @@ export const eventSchema = z.object({
   eventType: z.enum(['worship', 'meeting', 'special', 'other']).default('worship'),
   whatsappMessage: z.string().optional(),
   isPublic: z.boolean().default(true),
+  estimatedMembers: z.number().int().min(0, 'Deve ser um número positivo').optional(),
+  estimatedVisitors: z.number().int().min(0, 'Deve ser um número positivo').optional(),
+})
+
+export const eventAttendanceUpdateSchema = z.object({
+  eventId: z.string().uuid('ID do evento inválido'),
+  actualMembers: z.number().int().min(0, 'Deve ser um número positivo'),
+  actualVisitors: z.number().int().min(0, 'Deve ser um número positivo'),
 })
 
 export const eventAttendanceSchema = z.object({
@@ -19,4 +27,5 @@ export const eventAttendanceSchema = z.object({
 
 export type EventInput = z.infer<typeof eventSchema>
 export type EventAttendanceInput = z.infer<typeof eventAttendanceSchema>
+export type EventAttendanceUpdateInput = z.infer<typeof eventAttendanceUpdateSchema>
 

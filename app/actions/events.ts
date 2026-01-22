@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getChurchId } from '@/lib/utils/get-church-id'
 import { getMemberBirthdays } from '@/app/actions/members'
-import type { EventInput, EventAttendanceInput } from '@/lib/validations/events'
+import type { EventInput, EventAttendanceInput, EventAttendanceUpdateInput } from '@/lib/validations/events'
 
 // ============================================
 // EVENTOS
@@ -36,6 +36,8 @@ export async function createEvent(data: EventInput) {
       event_type: data.eventType,
       whatsapp_message: data.whatsappMessage || null,
       is_public: data.isPublic,
+      estimated_members: data.estimatedMembers || 0,
+      estimated_visitors: data.estimatedVisitors || 0,
       created_by: user?.id,
     })
 
@@ -150,6 +152,8 @@ export async function updateEvent(id: string, data: EventInput) {
       event_type: data.eventType,
       whatsapp_message: data.whatsappMessage || null,
       is_public: data.isPublic,
+      estimated_members: data.estimatedMembers || 0,
+      estimated_visitors: data.estimatedVisitors || 0,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)
@@ -330,5 +334,49 @@ export async function getEventStats(eventId: string) {
       total,
     },
   }
+}
+
+/**
+ * Atualizar presença real de um evento (após o evento acontecer)
+ */
+export async function updateEventAttendance(data: EventAttendanceUpdateInput) {
+  const supabase = await createClient()
+  const { churchId, error: churchError } = await getChurchId()
+
+  if (churchError || !churchId) {
+    return { error: churchError || 'Erro ao obter igreja' }
+  }
+
+  // Verificar se o evento pertence à igreja
+  const { data: event, error: eventError } = await supabase
+    .from('events')
+    .select('id, church_id, event_date')
+    .eq('id', data.eventId)
+    .eq('church_id', churchId)
+    .single()
+
+  if (eventError || !event) {
+    return { error: 'Evento não encontrado' }
+  }
+
+  // Atualizar presença real
+  const { error: updateError } = await supabase
+    .from('events')
+    .update({
+      actual_members: data.actualMembers,
+      actual_visitors: data.actualVisitors,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', data.eventId)
+    .eq('church_id', churchId)
+
+  if (updateError) {
+    return { error: updateError.message }
+  }
+
+  revalidatePath('/eventos')
+  revalidatePath(`/eventos/${data.eventId}`)
+  revalidatePath('/dashboard')
+  return { success: true }
 }
 

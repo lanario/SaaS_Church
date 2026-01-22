@@ -32,7 +32,7 @@ export function ReportTabs({ activeTab, month, year, children }: ReportTabsProps
   return (
     <div>
       {/* Tabs Navigation */}
-      <div className="flex gap-2 mb-6 border-b border-gray-200">
+      <div className="flex gap-2 mb-6 border-b border-slate-600">
         {tabs.map((tab) => {
           const Icon = tab.icon
           const isActive = activeTab === tab.id
@@ -44,8 +44,8 @@ export function ReportTabs({ activeTab, month, year, children }: ReportTabsProps
               className={cn(
                 'flex items-center gap-2 px-6 py-3 font-semibold transition-colors border-b-2',
                 isActive
-                  ? 'text-indigo-600 border-indigo-600'
-                  : 'text-gray-500 border-transparent hover:text-gray-700'
+                  ? 'text-indigo-400 border-indigo-400'
+                  : 'text-slate-400 border-transparent hover:text-slate-300'
               )}
             >
               <Icon />

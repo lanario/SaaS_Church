@@ -76,15 +76,15 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="bg-gray-50 flex h-screen overflow-hidden">
+    <div className="bg-slate-900 flex h-screen overflow-hidden">
       <Sidebar />
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main className="flex-1 flex flex-col overflow-hidden bg-slate-800">
         <Header
           userName={profile?.full_name || user.email?.split('@')[0] || 'Usuário'}
           userEmail={profile?.email || user.email || undefined}
           userAvatar={profile?.avatar_url || undefined}
         />
-        <div className="flex-1 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto bg-slate-800">
           {children}
         </div>
       </main>
