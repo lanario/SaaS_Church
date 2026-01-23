@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { FaUser, FaChurch, FaUsers } from 'react-icons/fa'
 import { cn } from '@/lib/utils/cn'
 
 interface Tab {
@@ -33,10 +32,10 @@ export function SettingsTabs({ tabs, defaultTab, children }: SettingsTabsProps) 
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={cn(
-                  'w-full flex items-center gap-3 p-3 rounded-lg transition-colors text-left',
+                  'w-full flex items-center gap-3 p-3 rounded-lg transition-all duration-150 text-left',
                   isActive
-                    ? 'bg-indigo-600 text-white shadow-md'
-                    : 'bg-white text-gray-700 hover:bg-indigo-50 hover:text-indigo-600 border border-gray-200'
+                    ? 'bg-indigo-600 text-white scale-105'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600 hover:text-white hover:scale-105 active:scale-95 border border-slate-600'
                 )}
               >
                 <Icon className="w-5 h-5" />

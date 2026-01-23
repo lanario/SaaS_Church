@@ -17,7 +17,6 @@ interface Expense {
 
 interface ExpenseListProps {
   expenses: Expense[]
-  categories?: Array<{ id: string; name: string }>
 }
 
 function formatCurrency(value: number) {
@@ -38,6 +37,12 @@ interface ExpenseRowProps {
 }
 
 function ExpenseRow({ expense, onDelete, isDeleting }: ExpenseRowProps) {
+  // Verificar se é do fundo de reserva
+  const isReserveFund = 
+    expense.expense_categories?.name?.toLowerCase() === 'fundo de reserva' ||
+    expense.description?.toLowerCase().includes('fundo de reserva') ||
+    expense.description?.toLowerCase().includes('depósito no fundo')
+
   return (
     <tr className="hover:bg-slate-600 transition-colors">
       <td className="px-6 py-4">
@@ -65,19 +70,24 @@ function ExpenseRow({ expense, onDelete, isDeleting }: ExpenseRowProps) {
         {formatCurrency(Number(expense.amount))}
       </td>
       <td className="px-6 py-4 text-right">
-        <button
-          onClick={() => onDelete(expense.id)}
-          disabled={isDeleting}
-          className="text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
-        >
-          <FaTrash />
-        </button>
+        {isReserveFund ? (
+          <span className="text-xs text-slate-500 italic">Protegida</span>
+        ) : (
+          <button
+            onClick={() => onDelete(expense.id)}
+            disabled={isDeleting}
+            className="text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
+            title="Excluir despesa"
+          >
+            <FaTrash />
+          </button>
+        )}
       </td>
     </tr>
   )
 }
 
-export function ExpenseList({ expenses, categories }: ExpenseListProps) {
+export function ExpenseList({ expenses }: ExpenseListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   async function handleDelete(id: string) {
@@ -87,7 +97,11 @@ export function ExpenseList({ expenses, categories }: ExpenseListProps) {
 
     setDeletingId(id)
     try {
-      await deleteExpense(id)
+      const result = await deleteExpense(id)
+      if (result?.error) {
+        alert(result.error)
+        return
+      }
       window.location.reload()
     } catch (error) {
       alert('Erro ao excluir despesa')

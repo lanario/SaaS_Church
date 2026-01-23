@@ -26,7 +26,7 @@ export default async function DespesasPage() {
         <CreateExpenseButton categories={categories || []} />
       </div>
 
-      <ExpenseList expenses={expenses || []} categories={categories || []} />
+      <ExpenseList expenses={expenses || []} />
     </div>
   )
 }

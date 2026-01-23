@@ -6,7 +6,7 @@ import { PastEvents } from '@/components/dashboard/past-events'
 import { CreateEventButton } from '@/components/events/create-event-button'
 import { createClient } from '@/lib/supabase/server'
 import { Card } from '@/components/ui/card'
-import { FaEnvelope, FaExclamationTriangle } from 'react-icons/fa'
+import { FaExclamationTriangle } from 'react-icons/fa'
 
 export default async function EventosPage() {
   const supabase = await createClient()

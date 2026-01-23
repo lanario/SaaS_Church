@@ -1,7 +1,22 @@
 import { redirect } from 'next/navigation'
+import { cache } from 'react'
 import { createClient } from '@/lib/supabase/server'
 import { Sidebar } from '@/components/layout/sidebar'
 import { Header } from '@/components/layout/header'
+
+// Cachear busca de perfil para evitar queries repetidas
+const getProfile = cache(async (userId: string) => {
+  const supabase = await createClient()
+  
+  const { data: profiles } = await supabase
+    .from('user_profiles')
+    .select('full_name, email, avatar_url, church_id')
+    .eq('id', userId)
+    .limit(1)
+    .maybeSingle()
+
+  return profiles
+})
 
 export default async function DashboardLayout({
   children,
@@ -15,15 +30,8 @@ export default async function DashboardLayout({
     redirect('/login')
   }
 
-  // Buscar perfil do usuário
-  // Tentar buscar sem .single() primeiro para evitar erro fatal
-  const { data: profiles } = await supabase
-    .from('user_profiles')
-    .select('full_name, email, avatar_url, church_id')
-    .eq('id', user.id)
-    .limit(1)
-
-  let profile = profiles && profiles.length > 0 ? profiles[0] : null
+  // Buscar perfil do usuário (com cache)
+  let profile = await getProfile(user.id)
 
   // Se não encontrar perfil, tentar criar automaticamente apenas se houver igreja existente
   if (!profile) {
@@ -49,17 +57,11 @@ export default async function DashboardLayout({
 
       if (!createError) {
         // Buscar perfil recém criado
-        const { data: newProfiles } = await supabase
-          .from('user_profiles')
-          .select('full_name, email, avatar_url, church_id')
-          .eq('id', user.id)
-          .limit(1)
-        
-        profile = newProfiles && newProfiles.length > 0 ? newProfiles[0] : null
+        profile = await getProfile(user.id)
 
-        // Criar permissões se necessário
+        // Criar permissões se necessário (não bloquear renderização)
         if (profile) {
-          await supabase
+          supabase
             .from('user_permissions')
             .upsert({
               user_id: user.id,
@@ -70,6 +72,7 @@ export default async function DashboardLayout({
               can_view_reports: true,
               can_send_whatsapp: true,
             })
+            .then(() => {}) // Fire and forget
         }
       }
     }
@@ -78,12 +81,8 @@ export default async function DashboardLayout({
   return (
     <div className="bg-slate-900 flex h-screen overflow-hidden">
       <Sidebar />
-      <main className="flex-1 flex flex-col overflow-hidden bg-slate-800">
-        <Header
-          userName={profile?.full_name || user.email?.split('@')[0] || 'Usuário'}
-          userEmail={profile?.email || user.email || undefined}
-          userAvatar={profile?.avatar_url || undefined}
-        />
+      <main className="flex-1 flex flex-col overflow-hidden bg-slate-800 min-w-0">
+        <Header />
         <div className="flex-1 overflow-y-auto bg-slate-800">
           {children}
         </div>

@@ -2,10 +2,12 @@
 
 import { useMemo } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import { filterReserveFundExpenses } from '@/lib/utils/filter-reserve-fund'
 
 interface Expense {
   amount: number
   expense_categories?: { name: string; color: string } | null
+  description?: string | null
 }
 
 interface ExpenseChartProps {
@@ -15,9 +17,11 @@ interface ExpenseChartProps {
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
 function processExpenseData(expenses: Expense[]) {
+  // Filtrar fundo de reserva antes de processar
+  const filteredExpenses = filterReserveFundExpenses(expenses)
   const categoryData: Record<string, { name: string; value: number; color: string }> = {}
 
-  expenses.forEach((expense) => {
+  filteredExpenses.forEach((expense) => {
     const categoryName = expense.expense_categories?.name || 'Sem categoria'
     const categoryColor = expense.expense_categories?.color || '#6366f1'
     

@@ -230,7 +230,7 @@ export function EventDetail({ event, attendances, stats }: EventDetailProps) {
       <MemberAttendance eventId={event.id} />
 
       {/* Lista de Confirmações */}
-      <AttendanceList eventId={event.id} attendances={attendances} />
+      <AttendanceList attendances={attendances} />
 
       {showWhatsAppModal && (
         <WhatsAppSendModal

@@ -17,7 +17,6 @@ interface Attendance {
 }
 
 interface AttendanceListProps {
-  eventId: string
   attendances: Attendance[]
 }
 
@@ -45,7 +44,7 @@ function getStatusInfo(status: string) {
   return statuses[status as keyof typeof statuses] || statuses.pending
 }
 
-export function AttendanceList({ eventId, attendances }: AttendanceListProps) {
+export function AttendanceList({ attendances }: AttendanceListProps) {
   if (attendances.length === 0) {
     return (
       <Card>

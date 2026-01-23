@@ -56,16 +56,16 @@ export function ChurchForm({ initialData }: ChurchFormProps) {
   return (
     <Card className="p-6">
       <div className="flex items-center gap-3 mb-6">
-        <FaChurch className="w-6 h-6 text-indigo-600" />
-        <h2 className="text-xl font-bold text-gray-900">Informações da Igreja</h2>
+        <FaChurch className="w-6 h-6 text-indigo-400" />
+        <h2 className="text-xl font-bold text-white">Informações da Igreja</h2>
       </div>
 
       {message && (
         <div
           className={`mb-4 p-4 rounded-lg flex items-center gap-2 ${
             message.type === 'success'
-              ? 'bg-green-50 text-green-800 border border-green-200'
-              : 'bg-red-50 text-red-800 border border-red-200'
+              ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+              : 'bg-red-500/20 text-red-400 border border-red-500/30'
           }`}
         >
           {message.type === 'success' ? (
@@ -79,7 +79,7 @@ export function ChurchForm({ initialData }: ChurchFormProps) {
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="name" className="block text-sm font-medium text-slate-300 mb-1">
             Nome da Igreja
           </label>
           <Input
@@ -88,12 +88,12 @@ export function ChurchForm({ initialData }: ChurchFormProps) {
             placeholder="Nome da sua igreja"
           />
           {errors.name && (
-            <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+            <p className="mt-1 text-sm text-red-400">{errors.name.message}</p>
           )}
         </div>
 
         <div>
-          <label htmlFor="logo_url" className="block text-sm font-medium text-gray-700 mb-1">
+          <label htmlFor="logo_url" className="block text-sm font-medium text-slate-300 mb-1">
             URL do Logo
           </label>
           <Input
@@ -103,7 +103,7 @@ export function ChurchForm({ initialData }: ChurchFormProps) {
             placeholder="https://exemplo.com/logo.png"
           />
           {errors.logo_url && (
-            <p className="mt-1 text-sm text-red-600">{errors.logo_url.message}</p>
+            <p className="mt-1 text-sm text-red-400">{errors.logo_url.message}</p>
           )}
         </div>
 

@@ -8,6 +8,7 @@ import { ExpenseChart } from '@/components/dashboard/expense-chart'
 import { SimpleCalendar } from '@/components/dashboard/simple-calendar'
 import { UpcomingEvents } from '@/components/dashboard/upcoming-events'
 import { PastEvents } from '@/components/dashboard/past-events'
+import { filterReserveFundRevenues, filterReserveFundExpenses } from '@/lib/utils/filter-reserve-fund'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -59,9 +60,13 @@ export default async function DashboardPage() {
     )
   }
 
-  // Últimas transações (últimas 5 receitas e 5 despesas)
-  const recentRevenues = revenues?.slice(0, 5) || []
-  const recentExpenses = expenses?.slice(0, 5) || []
+  // Filtrar fundo de reserva das receitas e despesas
+  const filteredRevenues = filterReserveFundRevenues(revenues || [])
+  const filteredExpenses = filterReserveFundExpenses(expenses || [])
+
+  // Últimas transações (últimas 5 receitas e 5 despesas, sem fundo de reserva)
+  const recentRevenues = filteredRevenues.slice(0, 5)
+  const recentExpenses = filteredExpenses.slice(0, 5)
   const recentTransactions = [
     ...recentRevenues.map(r => ({ ...r, type: 'revenue' as const })),
     ...recentExpenses.map(e => ({ ...e, type: 'expense' as const })),
@@ -70,17 +75,17 @@ export default async function DashboardPage() {
     .slice(0, 10)
 
   return (
-    <div className="flex-1 overflow-y-auto p-8">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
       <DashboardStats stats={stats} />
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mt-8">
-        <div className="lg:col-span-2 space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 lg:gap-8 mt-4 sm:mt-6 lg:mt-8">
+        <div className="lg:col-span-2 space-y-4 sm:space-y-6 lg:space-y-8">
           <RecentTransactions transactions={recentTransactions} />
           <SimpleCalendar events={events || []} />
         </div>
-        <div className="space-y-8">
-          <RevenueChart revenues={revenues || []} />
-          <ExpenseChart expenses={expenses || []} />
+        <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+          <RevenueChart revenues={filteredRevenues} />
+          <ExpenseChart expenses={filteredExpenses} />
           <UpcomingEvents events={upcomingEvents || []} />
           <PastEvents events={pastEvents || []} />
         </div>

@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { FaUser, FaEnvelope, FaPhone, FaCalendar, FaEdit, FaPlus, FaTimes } from 'react-icons/fa'
+import { FaUser, FaEnvelope, FaPhone, FaCalendar, FaEdit } from 'react-icons/fa'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
 import { Card, CardContent, CardHeader } from '@/components/ui/card'
@@ -61,7 +60,6 @@ function getStatusBadge(status: string) {
 }
 
 export function MemberProfile({ member, contributions }: MemberProfileProps) {
-  const router = useRouter()
   const [showCreateAccount, setShowCreateAccount] = useState(false)
 
   const totalContributions = contributions.reduce(

@@ -26,7 +26,7 @@ export default async function ReceitasPage() {
         <CreateRevenueButton categories={categories || []} />
       </div>
 
-      <RevenueList revenues={revenues || []} categories={categories || []} />
+      <RevenueList revenues={revenues || []} />
     </div>
   )
 }

@@ -4,12 +4,6 @@ import { useState, useRef, useEffect } from 'react'
 import { FaBell } from 'react-icons/fa'
 import { signOut } from '@/app/actions/auth'
 
-interface HeaderProps {
-  userName?: string
-  userEmail?: string
-  userAvatar?: string
-}
-
 interface Notification {
   id: string
   title: string
@@ -19,7 +13,7 @@ interface Notification {
   created_at: string
 }
 
-export function Header({ userName, userEmail, userAvatar }: HeaderProps) {
+export function Header() {
   const [showNotifications, setShowNotifications] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
@@ -54,6 +48,7 @@ export function Header({ userName, userEmail, userAvatar }: HeaderProps) {
       document.addEventListener('mousedown', handleClick)
       return () => document.removeEventListener('mousedown', handleClick)
     }
+    return undefined
   }, [showNotifications])
 
   function markAsRead(notificationId: string) {
@@ -69,15 +64,15 @@ export function Header({ userName, userEmail, userAvatar }: HeaderProps) {
   }
 
   return (
-    <header className="h-16 bg-slate-800 border-b border-slate-700 flex items-center justify-between px-8 flex-shrink-0">
-      <div className="flex items-center gap-4">
-        <h2 className="text-xl font-semibold text-white">Visão Geral</h2>
-        <span className="text-sm text-slate-300 bg-slate-700 px-3 py-1 rounded-full">
+    <header className="h-16 bg-slate-800 border-b border-slate-700 flex items-center justify-between px-4 lg:px-8 flex-shrink-0">
+      <div className="flex items-center gap-2 lg:gap-4 min-w-0">
+        <h2 className="text-lg lg:text-xl font-semibold text-white truncate">Visão Geral</h2>
+        <span className="hidden sm:inline text-sm text-slate-300 bg-slate-700 px-3 py-1 rounded-full whitespace-nowrap">
           {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}
         </span>
       </div>
 
-      <div className="flex items-center gap-6">
+      <div className="flex items-center gap-3 lg:gap-6">
         <div className="relative" ref={notificationRef}>
           <button
             className="relative text-slate-300 hover:text-indigo-400 transition-colors"

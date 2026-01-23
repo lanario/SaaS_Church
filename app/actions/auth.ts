@@ -27,8 +27,9 @@ export async function signIn(email: string, password: string) {
     .select('id')
     .eq('id', authData.user.id)
     .limit(1)
+    .maybeSingle()
 
-  const profile = profiles && profiles.length > 0 ? profiles[0] : null
+  const profile = profiles
 
   // Se o perfil não existe, tentar criar automaticamente apenas se houver igreja existente
   if (!profile) {
@@ -56,8 +57,8 @@ export async function signIn(email: string, password: string) {
       if (createProfileError) {
         console.error('Erro ao criar perfil durante login:', createProfileError)
       } else {
-        // Criar permissões iniciais
-        await supabase
+        // Criar permissões iniciais (não bloquear resposta)
+        Promise.resolve(supabase
           .from('user_permissions')
           .insert({
             user_id: authData.user.id,
@@ -67,11 +68,14 @@ export async function signIn(email: string, password: string) {
             can_manage_events: true,
             can_view_reports: true,
             can_send_whatsapp: true,
+          }))
+          .then(() => {
+            // Garantir categorias padrão de receitas (fire and forget)
+            import('@/app/actions/financial').then(({ ensureDefaultCategories }) => {
+              ensureDefaultCategories(churchId).catch(console.error)
+            }).catch(console.error)
           })
-
-        // Garantir categorias padrão de receitas
-        const { ensureDefaultCategories } = await import('@/app/actions/financial')
-        await ensureDefaultCategories(churchId)
+          .catch(console.error)
       }
     } else {
       // Se não houver igreja, o perfil será criado apenas durante o cadastro

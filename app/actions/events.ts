@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getChurchId } from '@/lib/utils/get-church-id'
 import { getMemberBirthdays } from '@/app/actions/members'
-import type { EventInput, EventAttendanceInput, EventAttendanceUpdateInput } from '@/lib/validations/events'
+import type { EventInput, EventAttendanceUpdateInput } from '@/lib/validations/events'
 
 // ============================================
 // EVENTOS

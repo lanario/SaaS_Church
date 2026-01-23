@@ -20,6 +20,7 @@ DROP TRIGGER IF EXISTS update_expenses_updated_at ON expenses;
 DROP TRIGGER IF EXISTS update_events_updated_at ON events;
 DROP TRIGGER IF EXISTS update_user_permissions_updated_at ON user_permissions;
 DROP TRIGGER IF EXISTS update_church_invites_updated_at ON church_invites;
+DROP TRIGGER IF EXISTS update_reserve_fund_updated_at ON reserve_fund;
 -- NOTA: Trigger de church_invites será criado após a tabela existir
 
 -- ============================================
@@ -967,8 +968,19 @@ CREATE POLICY "Users can view their church reserve fund"
     )
   );
 
-CREATE POLICY "Owners and treasurers can manage reserve fund"
-  ON reserve_fund FOR ALL
+-- Política para permitir criação inicial do fundo de reserva
+-- Qualquer usuário da igreja pode criar se não existir
+CREATE POLICY "Users can insert reserve fund if not exists"
+  ON reserve_fund FOR INSERT
+  WITH CHECK (
+    church_id IN (
+      SELECT church_id FROM user_profiles
+      WHERE id = auth.uid()
+    )
+  );
+
+CREATE POLICY "Owners and treasurers can update reserve fund"
+  ON reserve_fund FOR UPDATE
   USING (
     church_id IN (
       SELECT church_id FROM user_profiles
@@ -1010,6 +1022,23 @@ CREATE POLICY "Owners and treasurers can create reserve fund transactions"
     church_id IN (
       SELECT church_id FROM user_profiles
       WHERE id = auth.uid() AND role IN ('owner', 'treasurer')
+    )
+  );
+
+-- Política adicional: permitir que usuários com permissão de finanças também possam criar transações
+CREATE POLICY "Users with finance permission can create reserve fund transactions"
+  ON reserve_fund_transactions FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM user_profiles up
+      WHERE up.id = auth.uid()
+      AND up.church_id = reserve_fund_transactions.church_id
+      AND EXISTS (
+        SELECT 1 FROM user_permissions
+        WHERE user_id = auth.uid()
+        AND church_id = up.church_id
+        AND can_manage_finances = true
+      )
     )
   );
 

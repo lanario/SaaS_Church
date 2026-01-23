@@ -2,8 +2,7 @@
 
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { FaFileAlt } from 'react-icons/fa'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { formatCurrency } from '@/lib/utils/format-currency'
 import { Card } from '@/components/ui/card'
 
@@ -119,41 +118,64 @@ export function MonthlyReport({ data }: MonthlyReportProps) {
       </div>
 
       {/* Gráfico de Entradas e Saídas */}
-      <Card className="p-6">
-        <h3 className="font-bold text-white mb-4">Entradas e Saídas</h3>
-        <ResponsiveContainer width="100%" height={300}>
-          <LineChart data={chartData}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#475569" />
+      <Card className="p-6 bg-slate-700 border border-slate-600">
+        <h3 className="font-bold text-white mb-6">Entradas e Saídas</h3>
+        <ResponsiveContainer width="100%" height={400}>
+          <BarChart 
+            data={chartData}
+            margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+            barCategoryGap="20%"
+          >
+            <CartesianGrid strokeDasharray="3 3" stroke="#475569" opacity={0.2} vertical={false} />
             <XAxis 
               dataKey="month" 
-              tick={{ fill: '#cbd5e1' }}
+              tick={{ fill: '#94a3b8', fontSize: 14, fontWeight: 500 }}
+              axisLine={{ stroke: '#64748b', strokeWidth: 1 }}
+              tickLine={{ stroke: '#64748b' }}
             />
             <YAxis 
-              tick={{ fill: '#cbd5e1' }}
-              tickFormatter={(value) => formatCurrency(value)}
+              tick={{ fill: '#94a3b8', fontSize: 12 }}
+              tickFormatter={(value) => {
+                if (value >= 1000) {
+                  return `R$ ${(value / 1000).toFixed(1)}k`
+                }
+                return `R$ ${value}`
+              }}
+              axisLine={{ stroke: '#64748b', strokeWidth: 1 }}
+              tickLine={{ stroke: '#64748b' }}
             />
             <Tooltip 
               formatter={(value: number) => formatCurrency(value)}
-              contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px', color: '#fff' }}
+              contentStyle={{ 
+                backgroundColor: '#1e293b', 
+                border: '1px solid #475569', 
+                borderRadius: '8px', 
+                color: '#fff',
+                padding: '10px 14px',
+                boxShadow: '0 4px 6px rgba(0, 0, 0, 0.3)'
+              }}
+              labelStyle={{ color: '#cbd5e1', marginBottom: '6px', fontWeight: 600 }}
+              itemStyle={{ padding: '2px 0' }}
             />
-            <Legend />
-            <Line 
-              type="monotone" 
+            <Legend 
+              wrapperStyle={{ paddingTop: '30px' }}
+              iconType="square"
+              iconSize={12}
+              formatter={(value) => <span style={{ color: '#cbd5e1', fontSize: '14px' }}>{value}</span>}
+            />
+            <Bar 
               dataKey="revenue" 
-              stroke="#10b981" 
-              strokeWidth={2} 
               name="Entradas"
-              dot={{ fill: '#10b981', r: 4 }}
+              fill="#10b981"
+              radius={[6, 6, 0, 0]}
             />
-            <Line 
-              type="monotone" 
+            <Bar 
               dataKey="expense" 
-              stroke="#ef4444" 
-              strokeWidth={2} 
               name="Saídas"
-              dot={{ fill: '#ef4444', r: 4 }}
+              fill="#ef4444"
+              radius={[6, 6, 0, 0]}
             />
-          </LineChart>
+          </BarChart>
         </ResponsiveContainer>
       </Card>
 

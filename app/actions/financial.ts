@@ -3,6 +3,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
 import { getChurchId } from '@/lib/utils/get-church-id'
+import { filterReserveFundRevenues, filterReserveFundExpenses } from '@/lib/utils/filter-reserve-fund'
 import type { RevenueInput, ExpenseInput, RevenueCategoryInput, ExpenseCategoryInput } from '@/lib/validations/financial'
 
 // ============================================
@@ -193,6 +194,36 @@ export async function deleteRevenue(id: string) {
     return { error: churchError || 'Erro ao obter igreja' }
   }
 
+  // Verificar se a receita pertence ao fundo de reserva
+  const { data: revenue, error: fetchError } = await supabase
+    .from('revenues')
+    .select('category_id, description, revenue_categories(name)')
+    .eq('id', id)
+    .eq('church_id', churchId)
+    .single()
+
+  if (fetchError) {
+    return { error: fetchError.message }
+  }
+
+  if (!revenue) {
+    return { error: 'Receita não encontrada' }
+  }
+
+  // Verificar se é do fundo de reserva pela categoria ou descrição
+  const revenueCategories = revenue.revenue_categories as any
+  const categoryName = Array.isArray(revenueCategories)
+    ? revenueCategories[0]?.name
+    : revenueCategories?.name
+  const isReserveFund = 
+    categoryName?.toLowerCase() === 'fundo de reserva' ||
+    revenue.description?.toLowerCase().includes('fundo de reserva') ||
+    revenue.description?.toLowerCase().includes('retirada do fundo')
+
+  if (isReserveFund) {
+    return { error: 'Não é possível excluir transações relacionadas ao fundo de reserva. Use a função de retirada no fundo de reserva.' }
+  }
+
   const { error } = await supabase
     .from('revenues')
     .delete()
@@ -286,6 +317,36 @@ export async function deleteExpense(id: string) {
   
   if (churchError || !churchId) {
     return { error: churchError || 'Erro ao obter igreja' }
+  }
+
+  // Verificar se a despesa pertence ao fundo de reserva
+  const { data: expense, error: fetchError } = await supabase
+    .from('expenses')
+    .select('category_id, description, expense_categories(name)')
+    .eq('id', id)
+    .eq('church_id', churchId)
+    .single()
+
+  if (fetchError) {
+    return { error: fetchError.message }
+  }
+
+  if (!expense) {
+    return { error: 'Despesa não encontrada' }
+  }
+
+  // Verificar se é do fundo de reserva pela categoria ou descrição
+  const expenseCategories = expense.expense_categories as any
+  const categoryName = Array.isArray(expenseCategories)
+    ? expenseCategories[0]?.name
+    : expenseCategories?.name
+  const isReserveFund = 
+    categoryName?.toLowerCase() === 'fundo de reserva' ||
+    expense.description?.toLowerCase().includes('fundo de reserva') ||
+    expense.description?.toLowerCase().includes('depósito no fundo')
+
+  if (isReserveFund) {
+    return { error: 'Não é possível excluir transações relacionadas ao fundo de reserva. Use a função de retirada no fundo de reserva.' }
   }
 
   const { error } = await supabase
@@ -533,7 +594,7 @@ export async function getFinancialStats(period?: { start: Date; end: Date }) {
   // Receitas do período
   const { data: revenues } = await supabase
     .from('revenues')
-    .select('amount')
+    .select('amount, revenue_categories(name), description')
     .eq('church_id', churchId)
     .gte('transaction_date', startDate.toISOString().split('T')[0])
     .lte('transaction_date', endDate.toISOString().split('T')[0])
@@ -541,7 +602,7 @@ export async function getFinancialStats(period?: { start: Date; end: Date }) {
   // Despesas do período
   const { data: expenses } = await supabase
     .from('expenses')
-    .select('amount')
+    .select('amount, expense_categories(name), description')
     .eq('church_id', churchId)
     .gte('transaction_date', startDate.toISOString().split('T')[0])
     .lte('transaction_date', endDate.toISOString().split('T')[0])
@@ -549,19 +610,25 @@ export async function getFinancialStats(period?: { start: Date; end: Date }) {
   // Total de receitas (todas)
   const { data: allRevenues } = await supabase
     .from('revenues')
-    .select('amount')
+    .select('amount, revenue_categories(name), description')
     .eq('church_id', churchId)
 
   // Total de despesas (todas)
   const { data: allExpenses } = await supabase
     .from('expenses')
-    .select('amount')
+    .select('amount, expense_categories(name), description')
     .eq('church_id', churchId)
 
-  const totalRevenues = allRevenues?.reduce((sum, r) => sum + Number(r.amount), 0) || 0
-  const totalExpenses = allExpenses?.reduce((sum, e) => sum + Number(e.amount), 0) || 0
-  const periodRevenues = revenues?.reduce((sum, r) => sum + Number(r.amount), 0) || 0
-  const periodExpenses = expenses?.reduce((sum, e) => sum + Number(e.amount), 0) || 0
+  // Filtrar fundo de reserva
+  const filteredRevenues = filterReserveFundRevenues((revenues || []) as any[])
+  const filteredExpenses = filterReserveFundExpenses((expenses || []) as any[])
+  const filteredAllRevenues = filterReserveFundRevenues((allRevenues || []) as any[])
+  const filteredAllExpenses = filterReserveFundExpenses((allExpenses || []) as any[])
+
+  const totalRevenues = filteredAllRevenues.reduce((sum, r) => sum + Number(r.amount || 0), 0)
+  const totalExpenses = filteredAllExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0)
+  const periodRevenues = filteredRevenues.reduce((sum, r) => sum + Number(r.amount || 0), 0)
+  const periodExpenses = filteredExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0)
 
   return {
     error: null,

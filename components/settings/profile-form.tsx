@@ -86,14 +86,14 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
   return (
     <div className="space-y-6">
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-2 border-b border-slate-600">
         <button
           type="button"
           onClick={() => setActiveTab('profile')}
-          className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors ${
+          className={`flex items-center gap-2 px-4 py-2 font-medium transition-all duration-200 ${
             activeTab === 'profile'
-              ? 'text-indigo-600 border-b-2 border-indigo-600'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'text-indigo-400 border-b-2 border-indigo-400 scale-105'
+              : 'text-slate-400 hover:text-white hover:scale-105'
           }`}
         >
           <FaUser className="w-4 h-4" />
@@ -102,10 +102,10 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         <button
           type="button"
           onClick={() => setActiveTab('password')}
-          className={`flex items-center gap-2 px-4 py-2 font-medium transition-colors ${
+          className={`flex items-center gap-2 px-4 py-2 font-medium transition-all duration-200 ${
             activeTab === 'password'
-              ? 'text-indigo-600 border-b-2 border-indigo-600'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'text-indigo-400 border-b-2 border-indigo-400 scale-105'
+              : 'text-slate-400 hover:text-white hover:scale-105'
           }`}
         >
           <FaLock className="w-4 h-4" />
@@ -118,8 +118,8 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         <div
           className={`p-4 rounded-lg flex items-center gap-2 ${
             message.type === 'success'
-              ? 'bg-green-50 text-green-800 border border-green-200'
-              : 'bg-red-50 text-red-800 border border-red-200'
+              ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+              : 'bg-red-500/20 text-red-400 border border-red-500/30'
           }`}
         >
           {message.type === 'success' ? (
@@ -136,7 +136,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         <Card className="p-6">
           <form onSubmit={handleSubmitProfile(onSubmitProfile)} className="space-y-4">
             <div>
-              <label htmlFor="full_name" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="full_name" className="block text-sm font-medium text-slate-300 mb-1">
                 Nome Completo
               </label>
               <Input
@@ -145,12 +145,12 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 placeholder="Seu nome completo"
               />
               {errorsProfile.full_name && (
-                <p className="mt-1 text-sm text-red-600">{errorsProfile.full_name.message}</p>
+                <p className="mt-1 text-sm text-red-400">{errorsProfile.full_name.message}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="email" className="block text-sm font-medium text-slate-300 mb-1">
                 E-mail
               </label>
               <Input
@@ -160,12 +160,12 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 placeholder="seu@email.com"
               />
               {errorsProfile.email && (
-                <p className="mt-1 text-sm text-red-600">{errorsProfile.email.message}</p>
+                <p className="mt-1 text-sm text-red-400">{errorsProfile.email.message}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="phone" className="block text-sm font-medium text-slate-300 mb-1">
                 Telefone
               </label>
               <Input
@@ -175,12 +175,12 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 placeholder="(00) 00000-0000"
               />
               {errorsProfile.phone && (
-                <p className="mt-1 text-sm text-red-600">{errorsProfile.phone.message}</p>
+                <p className="mt-1 text-sm text-red-400">{errorsProfile.phone.message}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="avatar_url" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="avatar_url" className="block text-sm font-medium text-slate-300 mb-1">
                 URL do Avatar
               </label>
               <Input
@@ -190,7 +190,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 placeholder="https://exemplo.com/avatar.jpg"
               />
               {errorsProfile.avatar_url && (
-                <p className="mt-1 text-sm text-red-600">{errorsProfile.avatar_url.message}</p>
+                <p className="mt-1 text-sm text-red-400">{errorsProfile.avatar_url.message}</p>
               )}
             </div>
 
@@ -208,7 +208,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
         <Card className="p-6">
           <form onSubmit={handleSubmitPassword(onSubmitPassword)} className="space-y-4">
             <div>
-              <label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="currentPassword" className="block text-sm font-medium text-slate-300 mb-1">
                 Senha Atual
               </label>
               <Input
@@ -218,12 +218,12 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 placeholder="Digite sua senha atual"
               />
               {errorsPassword.currentPassword && (
-                <p className="mt-1 text-sm text-red-600">{errorsPassword.currentPassword.message}</p>
+                <p className="mt-1 text-sm text-red-400">{errorsPassword.currentPassword.message}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="newPassword" className="block text-sm font-medium text-slate-300 mb-1">
                 Nova Senha
               </label>
               <Input
@@ -233,12 +233,12 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 placeholder="Digite a nova senha"
               />
               {errorsPassword.newPassword && (
-                <p className="mt-1 text-sm text-red-600">{errorsPassword.newPassword.message}</p>
+                <p className="mt-1 text-sm text-red-400">{errorsPassword.newPassword.message}</p>
               )}
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-slate-300 mb-1">
                 Confirmar Nova Senha
               </label>
               <Input
@@ -248,7 +248,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
                 placeholder="Confirme a nova senha"
               />
               {errorsPassword.confirmPassword && (
-                <p className="mt-1 text-sm text-red-600">{errorsPassword.confirmPassword.message}</p>
+                <p className="mt-1 text-sm text-red-400">{errorsPassword.confirmPassword.message}</p>
               )}
             </div>
 

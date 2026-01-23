@@ -221,7 +221,7 @@ export async function getChurchUsers() {
   }
 
   // Se RPC funcionou, formatar dados
-  const users = usersData?.map(user => ({
+  const users = usersData?.map((user: any) => ({
     id: user.id,
     full_name: user.full_name,
     email: user.email,

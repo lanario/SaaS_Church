@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { FaCheck, FaTimes, FaEnvelope } from 'react-icons/fa'
+import { FaCheck, FaTimes } from 'react-icons/fa'
 import Link from 'next/link'
 
 interface AcceptInvitePageProps {

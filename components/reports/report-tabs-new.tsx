@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { FaCalendarAlt, FaChartLine } from 'react-icons/fa'
 import { cn } from '@/lib/utils/cn'
@@ -42,10 +41,10 @@ export function ReportTabs({ activeTab, month, year, children }: ReportTabsProps
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
               className={cn(
-                'flex items-center gap-2 px-6 py-3 font-semibold transition-colors border-b-2',
+                'flex items-center gap-2 px-6 py-3 font-semibold transition-all duration-150 border-b-2',
                 isActive
-                  ? 'text-indigo-400 border-indigo-400'
-                  : 'text-slate-400 border-transparent hover:text-slate-300'
+                  ? 'text-indigo-400 border-indigo-400 scale-105'
+                  : 'text-slate-400 border-transparent hover:text-white hover:scale-105 active:scale-95'
               )}
             >
               <Icon />

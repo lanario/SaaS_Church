@@ -10,9 +10,8 @@ import { getMembers } from '@/app/actions/members'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { FaDollarSign, FaCalendar, FaUser } from 'react-icons/fa'
+import { FaDollarSign, FaCalendar } from 'react-icons/fa'
 import { format } from 'date-fns'
-import { ptBR } from 'date-fns/locale'
 
 interface RevenueFormProps {
   categories: Array<{ id: string; name: string; color: string }>
@@ -228,6 +227,7 @@ export function RevenueForm({ categories }: RevenueFormProps) {
                   render={({ field }) => (
                     <select
                       {...field}
+                      value={field.value || ''}
                       className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
                       <option value="">Selecione um membro</option>

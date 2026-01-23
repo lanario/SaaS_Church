@@ -12,15 +12,15 @@ export function AjustesUsuarios() {
   return (
     <div className="space-y-6">
       {/* Tabs */}
-      <div className="flex gap-2 border-b border-gray-200">
+      <div className="flex gap-2 border-b border-slate-600">
         <button
           type="button"
           onClick={() => setActiveTab('permissions')}
           className={cn(
-            'flex items-center gap-2 px-4 py-2 font-medium transition-colors',
+            'flex items-center gap-2 px-4 py-2 font-medium transition-all duration-200',
             activeTab === 'permissions'
-              ? 'text-indigo-600 border-b-2 border-indigo-600'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'text-indigo-400 border-b-2 border-indigo-400 scale-105'
+              : 'text-slate-400 hover:text-white hover:scale-105'
           )}
         >
           <FaUsers className="w-4 h-4" />
@@ -30,10 +30,10 @@ export function AjustesUsuarios() {
           type="button"
           onClick={() => setActiveTab('invites')}
           className={cn(
-            'flex items-center gap-2 px-4 py-2 font-medium transition-colors',
+            'flex items-center gap-2 px-4 py-2 font-medium transition-all duration-200',
             activeTab === 'invites'
-              ? 'text-indigo-600 border-b-2 border-indigo-600'
-              : 'text-gray-600 hover:text-gray-900'
+              ? 'text-indigo-400 border-b-2 border-indigo-400 scale-105'
+              : 'text-slate-400 hover:text-white hover:scale-105'
           )}
         >
           <FaEnvelope className="w-4 h-4" />

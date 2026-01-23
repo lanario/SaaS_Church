@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useState } from 'react'
-import { FaUser, FaEdit, FaTrash, FaUserCheck, FaUserTimes } from 'react-icons/fa'
+import { FaUser, FaTrash, FaUserCheck, FaUserTimes } from 'react-icons/fa'
 import { deleteMember } from '@/app/actions/members'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -46,17 +46,17 @@ export function MemberList({ members }: MemberListProps) {
     const badges = {
       active: {
         label: 'Ativo',
-        color: 'bg-green-100 text-green-700',
+        color: 'bg-green-500/20 text-green-400 border border-green-500/30',
         icon: FaUserCheck,
       },
       inactive: {
         label: 'Inativo',
-        color: 'bg-gray-100 text-gray-700',
+        color: 'bg-slate-500/20 text-slate-400 border border-slate-500/30',
         icon: FaUserTimes,
       },
       visitor: {
         label: 'Visitante',
-        color: 'bg-blue-100 text-blue-700',
+        color: 'bg-blue-500/20 text-blue-400 border border-blue-500/30',
         icon: FaUser,
       },
     }
@@ -75,7 +75,7 @@ export function MemberList({ members }: MemberListProps) {
   if (members.length === 0) {
     return (
       <Card className="p-8 text-center">
-        <p className="text-gray-500">Nenhum membro cadastrado ainda.</p>
+        <p className="text-slate-400">Nenhum membro cadastrado ainda.</p>
       </Card>
     )
   }
@@ -83,7 +83,7 @@ export function MemberList({ members }: MemberListProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {members.map((member) => (
-        <Card key={member.id} className="p-6 hover:shadow-lg transition-shadow">
+        <Card key={member.id} className="p-6 hover:scale-105 active:scale-95 transition-transform duration-150">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
               {member.avatar_url ? (
@@ -93,17 +93,17 @@ export function MemberList({ members }: MemberListProps) {
                   className="w-16 h-16 rounded-full object-cover"
                 />
               ) : (
-                <div className="w-16 h-16 rounded-full bg-indigo-100 flex items-center justify-center">
-                  <FaUser className="text-indigo-600 text-2xl" />
+                <div className="w-16 h-16 rounded-full bg-indigo-600/20 flex items-center justify-center border border-indigo-500/30">
+                  <FaUser className="text-indigo-400 text-2xl" />
                 </div>
               )}
               <div>
-                <h3 className="font-bold text-gray-800">{member.full_name}</h3>
+                <h3 className="font-bold text-white">{member.full_name}</h3>
                 {member.email && (
-                  <p className="text-sm text-gray-500">{member.email}</p>
+                  <p className="text-sm text-slate-400">{member.email}</p>
                 )}
                 {member.phone && (
-                  <p className="text-sm text-gray-500">{member.phone}</p>
+                  <p className="text-sm text-slate-400">{member.phone}</p>
                 )}
               </div>
             </div>
@@ -112,7 +112,7 @@ export function MemberList({ members }: MemberListProps) {
           <div className="flex items-center justify-between mb-4">
             {getStatusBadge(member.status)}
             {member.member_since && (
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-slate-400">
                 Desde {format(new Date(member.member_since), 'MMM yyyy', { locale: ptBR })}
               </p>
             )}
@@ -120,13 +120,13 @@ export function MemberList({ members }: MemberListProps) {
 
           {member.user_id ? (
             <div className="mb-4">
-              <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+              <span className="text-xs text-green-400 bg-green-500/20 border border-green-500/30 px-2 py-1 rounded">
                 Conta criada
               </span>
             </div>
           ) : (
             <div className="mb-4">
-              <span className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded">
+              <span className="text-xs text-amber-400 bg-amber-500/20 border border-amber-500/30 px-2 py-1 rounded">
                 Sem conta
               </span>
             </div>
@@ -142,7 +142,7 @@ export function MemberList({ members }: MemberListProps) {
             <button
               onClick={() => handleDelete(member.id)}
               disabled={deletingId === member.id}
-              className="px-4 py-2 text-red-600 hover:text-red-700 disabled:opacity-50"
+              className="px-4 py-2 text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
             >
               <FaTrash />
             </button>

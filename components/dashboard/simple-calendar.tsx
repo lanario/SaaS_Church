@@ -71,10 +71,6 @@ export function SimpleCalendar({ events = [], onDateClick }: SimpleCalendarProps
     return events.some(event => isSameDay(new Date(event.event_date), date))
   }
 
-  function getEventForDate(date: Date) {
-    return events.find(event => isSameDay(new Date(event.event_date), date))
-  }
-
   function getAllEventsForDate(date: Date) {
     return events.filter(event => isSameDay(new Date(event.event_date), date))
   }

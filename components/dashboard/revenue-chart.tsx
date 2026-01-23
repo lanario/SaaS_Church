@@ -2,10 +2,12 @@
 
 import { useMemo } from 'react'
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts'
+import { filterReserveFundRevenues } from '@/lib/utils/filter-reserve-fund'
 
 interface Revenue {
   amount: number
   revenue_categories?: { name: string; color: string } | null
+  description?: string | null
 }
 
 interface RevenueChartProps {
@@ -15,9 +17,11 @@ interface RevenueChartProps {
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
 function processRevenueData(revenues: Revenue[]) {
+  // Filtrar fundo de reserva antes de processar
+  const filteredRevenues = filterReserveFundRevenues(revenues)
   const categoryData: Record<string, { name: string; value: number; color: string }> = {}
 
-  revenues.forEach((revenue) => {
+  filteredRevenues.forEach((revenue) => {
     const categoryName = revenue.revenue_categories?.name || 'Sem categoria'
     const categoryColor = revenue.revenue_categories?.color || '#6366f1'
     

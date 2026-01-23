@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server'
 import { getChurchId } from '@/lib/utils/get-church-id'
+import { filterReserveFundRevenues, filterReserveFundExpenses } from '@/lib/utils/filter-reserve-fund'
 import type { ReportFilterInput } from '@/lib/validations/reports'
 
 // ============================================
@@ -58,12 +59,16 @@ export async function getRevenueVsExpenseReport(filters: ReportFilterInput) {
     return { error: expenseError.message, data: null }
   }
 
-  const totalRevenue = revenues?.reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0
-  const totalExpense = expenses?.reduce((sum, e) => sum + Number(e.amount || 0), 0) || 0
+  // Filtrar fundo de reserva
+  const filteredRevenues = filterReserveFundRevenues(revenues || [])
+  const filteredExpenses = filterReserveFundExpenses(expenses || [])
+
+  const totalRevenue = filteredRevenues.reduce((sum, r) => sum + Number(r.amount || 0), 0)
+  const totalExpense = filteredExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0)
   const balance = totalRevenue - totalExpense
 
   // Agrupar por mês
-  const monthlyData = groupByMonth(revenues || [], expenses || [])
+  const monthlyData = groupByMonth(filteredRevenues, filteredExpenses)
 
   return {
     error: null,
@@ -72,8 +77,8 @@ export async function getRevenueVsExpenseReport(filters: ReportFilterInput) {
       totalExpense,
       balance,
       monthlyData,
-      revenues: revenues || [],
-      expenses: expenses || [],
+      revenues: filteredRevenues,
+      expenses: filteredExpenses,
     },
   }
 }
@@ -106,15 +111,21 @@ export async function getCategoryReport(filters: ReportFilterInput) {
   // Calcular totais por categoria de receitas
   const revenueTotals = await Promise.all(
     (revenueCategories || []).map(async (category) => {
+      // Pular categoria "Fundo de Reserva"
+      if (category.name.toLowerCase() === 'fundo de reserva') {
+        return { ...category, total: 0, type: 'revenue' as const }
+      }
+
       const { data: revenues } = await supabase
         .from('revenues')
-        .select('amount')
+        .select('amount, revenue_categories(name), description')
         .eq('church_id', churchId)
         .eq('category_id', category.id)
         .gte('transaction_date', startDate)
         .lte('transaction_date', endDate)
 
-      const total = revenues?.reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0
+      const filteredRevenues = filterReserveFundRevenues(revenues || [])
+      const total = filteredRevenues.reduce((sum, r) => sum + Number(r.amount || 0), 0)
       return { ...category, total, type: 'revenue' as const }
     })
   )
@@ -122,15 +133,21 @@ export async function getCategoryReport(filters: ReportFilterInput) {
   // Calcular totais por categoria de despesas
   const expenseTotals = await Promise.all(
     (expenseCategories || []).map(async (category) => {
+      // Pular categoria "Fundo de Reserva"
+      if (category.name.toLowerCase() === 'fundo de reserva') {
+        return { ...category, total: 0, type: 'expense' as const }
+      }
+
       const { data: expenses } = await supabase
         .from('expenses')
-        .select('amount')
+        .select('amount, expense_categories(name), description')
         .eq('church_id', churchId)
         .eq('category_id', category.id)
         .gte('transaction_date', startDate)
         .lte('transaction_date', endDate)
 
-      const total = expenses?.reduce((sum, e) => sum + Number(e.amount || 0), 0) || 0
+      const filteredExpenses = filterReserveFundExpenses(expenses || [])
+      const total = filteredExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0)
       return { ...category, total, type: 'expense' as const }
     })
   )
@@ -160,7 +177,7 @@ export async function getCashFlowReport(filters: ReportFilterInput) {
   // Buscar todas as transações ordenadas por data
   const { data: revenues } = await supabase
     .from('revenues')
-    .select('amount, transaction_date')
+    .select('amount, transaction_date, revenue_categories(name), description')
     .eq('church_id', churchId)
     .gte('transaction_date', startDate)
     .lte('transaction_date', endDate)
@@ -168,14 +185,18 @@ export async function getCashFlowReport(filters: ReportFilterInput) {
 
   const { data: expenses } = await supabase
     .from('expenses')
-    .select('amount, transaction_date')
+    .select('amount, transaction_date, expense_categories(name), description')
     .eq('church_id', churchId)
     .gte('transaction_date', startDate)
     .lte('transaction_date', endDate)
     .order('transaction_date', { ascending: true })
 
+  // Filtrar fundo de reserva
+  const filteredRevenues = filterReserveFundRevenues(revenues || [])
+  const filteredExpenses = filterReserveFundExpenses(expenses || [])
+
   // Calcular saldo acumulado dia a dia
-  const dailyBalances = calculateDailyBalances(revenues || [], expenses || [], startDate, endDate)
+  const dailyBalances = calculateDailyBalances(filteredRevenues, filteredExpenses, startDate, endDate)
 
   return {
     error: null,
@@ -318,8 +339,12 @@ export async function getMonthlyReport(month: number, year: number) {
     .gte('transaction_date', startDate)
     .lte('transaction_date', endDate)
 
-  const totalRevenue = revenues?.reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0
-  const totalExpense = expenses?.reduce((sum, e) => sum + Number(e.amount || 0), 0) || 0
+  // Filtrar fundo de reserva
+  const filteredRevenues = filterReserveFundRevenues(revenues || [])
+  const filteredExpenses = filterReserveFundExpenses(expenses || [])
+
+  const totalRevenue = filteredRevenues.reduce((sum, r) => sum + Number(r.amount || 0), 0)
+  const totalExpense = filteredExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0)
   const balance = totalRevenue - totalExpense
 
   // Calcular mês anterior para variação
@@ -331,20 +356,23 @@ export async function getMonthlyReport(month: number, year: number) {
   // Buscar dados do mês anterior
   const { data: prevRevenues } = await supabase
     .from('revenues')
-    .select('amount')
+    .select('amount, revenue_categories(name), description')
     .eq('church_id', churchId)
     .gte('transaction_date', prevStartDate)
     .lte('transaction_date', prevEndDate)
 
   const { data: prevExpenses } = await supabase
     .from('expenses')
-    .select('amount')
+    .select('amount, expense_categories(name), description')
     .eq('church_id', churchId)
     .gte('transaction_date', prevStartDate)
     .lte('transaction_date', prevEndDate)
 
-  const prevTotalRevenue = prevRevenues?.reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0
-  const prevTotalExpense = prevExpenses?.reduce((sum, e) => sum + Number(e.amount || 0), 0) || 0
+  const filteredPrevRevenues = filterReserveFundRevenues(prevRevenues || [])
+  const filteredPrevExpenses = filterReserveFundExpenses(prevExpenses || [])
+
+  const prevTotalRevenue = filteredPrevRevenues.reduce((sum, r) => sum + Number(r.amount || 0), 0)
+  const prevTotalExpense = filteredPrevExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0)
   const prevBalance = prevTotalRevenue - prevTotalExpense
 
   const variation = balance - prevBalance
@@ -369,24 +397,30 @@ export async function getMonthlyReport(month: number, year: number) {
     amount: number
   }> = []
 
-  revenues?.forEach((rev) => {
+  filteredRevenues.forEach((rev) => {
+    const categoryName = Array.isArray(rev.revenue_categories)
+      ? rev.revenue_categories[0]?.name
+      : (rev.revenue_categories as any)?.name
     transactions.push({
       id: rev.id,
       date: rev.transaction_date,
       description: rev.description,
-      category: rev.revenue_categories?.name || null,
+      category: categoryName || null,
       member: rev.member_id ? 'Dízimo' : null,
       type: 'revenue',
       amount: Number(rev.amount),
     })
   })
 
-  expenses?.forEach((exp) => {
+  filteredExpenses.forEach((exp) => {
+    const categoryName = Array.isArray(exp.expense_categories)
+      ? exp.expense_categories[0]?.name
+      : (exp.expense_categories as any)?.name
     transactions.push({
       id: exp.id,
       date: exp.transaction_date,
       description: exp.description,
-      category: exp.expense_categories?.name || null,
+      category: categoryName || null,
       member: null,
       type: 'expense',
       amount: Number(exp.amount),
@@ -429,7 +463,7 @@ export async function getAnnualReport(year: number) {
   // Buscar todas as receitas do ano
   const { data: revenues } = await supabase
     .from('revenues')
-    .select('amount, transaction_date')
+    .select('amount, transaction_date, revenue_categories(name), description')
     .eq('church_id', churchId)
     .gte('transaction_date', startDate)
     .lte('transaction_date', endDate)
@@ -437,13 +471,17 @@ export async function getAnnualReport(year: number) {
   // Buscar todas as despesas do ano
   const { data: expenses } = await supabase
     .from('expenses')
-    .select('amount, transaction_date')
+    .select('amount, transaction_date, expense_categories(name), description')
     .eq('church_id', churchId)
     .gte('transaction_date', startDate)
     .lte('transaction_date', endDate)
 
-  const totalRevenue = revenues?.reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0
-  const totalExpense = expenses?.reduce((sum, e) => sum + Number(e.amount || 0), 0) || 0
+  // Filtrar fundo de reserva
+  const filteredRevenues = filterReserveFundRevenues(revenues || [])
+  const filteredExpenses = filterReserveFundExpenses(expenses || [])
+
+  const totalRevenue = filteredRevenues.reduce((sum, r) => sum + Number(r.amount || 0), 0)
+  const totalExpense = filteredExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0)
   const balance = totalRevenue - totalExpense
 
   // Calcular ano anterior para variação
@@ -454,27 +492,30 @@ export async function getAnnualReport(year: number) {
   // Buscar dados do ano anterior
   const { data: prevRevenues } = await supabase
     .from('revenues')
-    .select('amount')
+    .select('amount, revenue_categories(name), description')
     .eq('church_id', churchId)
     .gte('transaction_date', prevStartDate)
     .lte('transaction_date', prevEndDate)
 
   const { data: prevExpenses } = await supabase
     .from('expenses')
-    .select('amount')
+    .select('amount, expense_categories(name), description')
     .eq('church_id', churchId)
     .gte('transaction_date', prevStartDate)
     .lte('transaction_date', prevEndDate)
 
-  const prevTotalRevenue = prevRevenues?.reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0
-  const prevTotalExpense = prevExpenses?.reduce((sum, e) => sum + Number(e.amount || 0), 0) || 0
+  const filteredPrevRevenues = filterReserveFundRevenues(prevRevenues || [])
+  const filteredPrevExpenses = filterReserveFundExpenses(prevExpenses || [])
+
+  const prevTotalRevenue = filteredPrevRevenues.reduce((sum, r) => sum + Number(r.amount || 0), 0)
+  const prevTotalExpense = filteredPrevExpenses.reduce((sum, e) => sum + Number(e.amount || 0), 0)
   const prevBalance = prevTotalRevenue - prevTotalExpense
 
   const variation = balance - prevBalance
   const variationPercent = prevBalance !== 0 ? (variation / Math.abs(prevBalance)) * 100 : 0
 
   // Agrupar dados por mês
-  const monthlyData = groupByMonth(revenues || [], expenses || [])
+  const monthlyData = groupByMonth(filteredRevenues, filteredExpenses)
   
   // Garantir que todos os 12 meses estejam presentes
   const allMonths = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 

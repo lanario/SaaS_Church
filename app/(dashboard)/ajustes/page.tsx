@@ -27,7 +27,7 @@ export default async function AjustesPage() {
       <div className="flex-1 overflow-y-auto p-8">
         <Card className="p-6">
           <div className="text-center py-8">
-            <p className="text-red-600">Perfil não encontrado. Por favor, faça logout e login novamente.</p>
+            <p className="text-red-400">Perfil não encontrado. Por favor, faça logout e login novamente.</p>
           </div>
         </Card>
       </div>
@@ -45,8 +45,8 @@ export default async function AjustesPage() {
     <div className="flex-1 overflow-y-auto p-8">
       <div className="max-w-6xl mx-auto space-y-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Ajustes</h1>
-          <p className="text-gray-600">Gerencie suas configurações pessoais e da igreja</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Ajustes</h1>
+          <p className="text-slate-300">Gerencie suas configurações pessoais e da igreja</p>
         </div>
 
         <SettingsTabsWrapper

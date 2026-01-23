@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FaUserCheck, FaUserTimes, FaUserClock } from 'react-icons/fa'
+import { FaUserCheck, FaUserTimes } from 'react-icons/fa'
 import { confirmAttendance, getMemberEventAttendance } from '@/app/actions/events'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'

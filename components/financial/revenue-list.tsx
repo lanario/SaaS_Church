@@ -3,9 +3,8 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { FaPlus, FaTrash, FaEdit } from 'react-icons/fa'
+import { FaPlus, FaTrash } from 'react-icons/fa'
 import { deleteRevenue } from '@/app/actions/financial'
-import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 
 interface Revenue {
@@ -20,7 +19,6 @@ interface Revenue {
 
 interface RevenueListProps {
   revenues: Revenue[]
-  categories?: Array<{ id: string; name: string }>
 }
 
 function formatCurrency(value: number) {
@@ -44,6 +42,12 @@ interface RevenueRowProps {
 }
 
 function RevenueRow({ revenue, onDelete, isDeleting }: RevenueRowProps) {
+  // Verificar se é do fundo de reserva
+  const isReserveFund = 
+    revenue.revenue_categories?.name?.toLowerCase() === 'fundo de reserva' ||
+    revenue.description?.toLowerCase().includes('fundo de reserva') ||
+    revenue.description?.toLowerCase().includes('retirada do fundo')
+
   return (
     <tr className="hover:bg-slate-600 transition-colors">
       <td className="px-6 py-4">
@@ -71,19 +75,24 @@ function RevenueRow({ revenue, onDelete, isDeleting }: RevenueRowProps) {
         {formatCurrency(Number(revenue.amount))}
       </td>
       <td className="px-6 py-4 text-right">
-        <button
-          onClick={() => onDelete(revenue.id)}
-          disabled={isDeleting}
-          className="text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
-        >
-          <FaTrash />
-        </button>
+        {isReserveFund ? (
+          <span className="text-xs text-slate-500 italic">Protegida</span>
+        ) : (
+          <button
+            onClick={() => onDelete(revenue.id)}
+            disabled={isDeleting}
+            className="text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
+            title="Excluir receita"
+          >
+            <FaTrash />
+          </button>
+        )}
       </td>
     </tr>
   )
 }
 
-export function RevenueList({ revenues, categories }: RevenueListProps) {
+export function RevenueList({ revenues }: RevenueListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   async function handleDelete(id: string) {
@@ -93,7 +102,11 @@ export function RevenueList({ revenues, categories }: RevenueListProps) {
 
     setDeletingId(id)
     try {
-      await deleteRevenue(id)
+      const result = await deleteRevenue(id)
+      if (result?.error) {
+        alert(result.error)
+        return
+      }
       window.location.reload()
     } catch (error) {
       alert('Erro ao excluir receita')
