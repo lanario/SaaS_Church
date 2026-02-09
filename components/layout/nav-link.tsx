@@ -10,9 +10,10 @@ interface NavLinkProps {
   children: React.ReactNode
   className?: string
   prefetch?: boolean
+  onClick?: () => void
 }
 
-export function NavLink({ href, children, className, prefetch = true }: NavLinkProps) {
+export function NavLink({ href, children, className, prefetch = true, onClick }: NavLinkProps) {
   const pathname = usePathname()
   const [isPending, startTransition] = useTransition()
 
@@ -21,8 +22,10 @@ export function NavLink({ href, children, className, prefetch = true }: NavLinkP
       e.preventDefault()
       return
     }
+    
+    // Executar callback de fechamento (mobile) em transição
     startTransition(() => {
-      // Navegação será feita pelo Link
+      onClick?.()
     })
   }
 
@@ -33,8 +36,9 @@ export function NavLink({ href, children, className, prefetch = true }: NavLinkP
       onClick={handleClick}
       className={cn(
         className,
-        isPending && 'opacity-70 pointer-events-none'
+        isPending && 'opacity-60'
       )}
+      aria-disabled={isPending}
     >
       {children}
     </Link>

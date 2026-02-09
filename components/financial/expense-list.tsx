@@ -1,9 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import Link from 'next/link'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { FaMinus, FaTrash } from 'react-icons/fa'
+import { FaMinus, FaTrash, FaEdit } from 'react-icons/fa'
 import { deleteExpense } from '@/app/actions/financial'
 
 interface Expense {
@@ -73,14 +74,23 @@ function ExpenseRow({ expense, onDelete, isDeleting }: ExpenseRowProps) {
         {isReserveFund ? (
           <span className="text-xs text-slate-500 italic">Protegida</span>
         ) : (
-          <button
-            onClick={() => onDelete(expense.id)}
-            disabled={isDeleting}
-            className="text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
-            title="Excluir despesa"
-          >
-            <FaTrash />
-          </button>
+          <div className="flex items-center justify-end gap-3">
+            <Link
+              href={`/despesas/${expense.id}/editar`}
+              className="text-indigo-400 hover:text-indigo-300 transition-colors"
+              title="Editar despesa"
+            >
+              <FaEdit />
+            </Link>
+            <button
+              onClick={() => onDelete(expense.id)}
+              disabled={isDeleting}
+              className="text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
+              title="Excluir despesa"
+            >
+              <FaTrash />
+            </button>
+          </div>
         )}
       </td>
     </tr>

@@ -43,10 +43,10 @@ export function MemberSearch() {
                         onChange={(e) => setStatus(e.target.value)}
                         className="w-full px-4 py-3 border border-slate-500 bg-slate-700 text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
                     >
-                        <option value="">Todos os status</option>
-                        <option value="active">Ativo</option>
-                        <option value="inactive">Inativo</option>
-                        <option value="visitor">Visitante</option>
+                        <option value="" className="bg-slate-700 text-white">Todos os status</option>
+                        <option value="active" className="bg-slate-700 text-white">Ativo</option>
+                        <option value="inactive" className="bg-slate-700 text-white">Inativo</option>
+                        <option value="visitor" className="bg-slate-700 text-white">Visitante</option>
                     </select>
                 </div>
                 <div className="flex gap-2">

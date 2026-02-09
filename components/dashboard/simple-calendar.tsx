@@ -180,8 +180,8 @@ export function SimpleCalendar({ events = [], onDateClick }: SimpleCalendarProps
         </div>
       </div>
 
-      <div className="overflow-x-auto">
-        <div className="grid grid-cols-7 gap-1 min-w-[600px]">
+      <div className="overflow-x-auto scrollbar-hide">
+        <div className="grid grid-cols-7 gap-2 min-w-[600px]">
           {/* Header - Dias da semana */}
           <div className="hidden sm:contents">
             {daysOfWeek.map((day) => (
@@ -223,8 +223,9 @@ export function SimpleCalendar({ events = [], onDateClick }: SimpleCalendarProps
                   ${isToday ? 'bg-indigo-600 text-white font-semibold ring-2 ring-indigo-400' : ''}
                   ${hasEventOnDay && !isToday ? 'bg-indigo-900/30 text-indigo-300 hover:bg-indigo-900/50' : ''}
                   ${!hasEventOnDay && !isToday && isCurrentMonth ? 'hover:bg-slate-600' : ''}
-                  ${isHovered ? 'ring-2 ring-indigo-400 scale-105' : ''}
+                  ${isHovered ? 'ring-2 ring-indigo-400 scale-[1.02]' : ''}
                   flex flex-col items-center justify-center relative cursor-pointer
+                  m-0.5
                 `}
               >
                 <span className="text-xs md:text-sm">{format(date, 'd')}</span>

@@ -35,9 +35,10 @@ export function WhatsAppSendModal({ event, onClose }: WhatsAppSendModalProps) {
 
   useEffect(() => {
     async function loadMembers() {
-      const { data } = await getMembers()
-      if (data) {
-        setMembers(data.filter(m => m.phone)) // Apenas membros com telefone
+      const result = await getMembers()
+      if (result.data) {
+        const members = (result.data as unknown as Array<{ phone: string | null }>).filter(m => m.phone)
+        setMembers(members as any) // Apenas membros com telefone
       }
       setIsLoading(false)
     }

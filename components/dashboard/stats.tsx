@@ -1,4 +1,4 @@
-import { FaWallet, FaDollarSign, FaFileInvoice, FaPiggyBank } from 'react-icons/fa'
+import { FaWallet, FaDollarSign, FaFileInvoice, FaPiggyBank, FaChartLine } from 'react-icons/fa'
 
 interface Stats {
   error?: string | null
@@ -7,6 +7,8 @@ interface Stats {
   periodExpenses: number
   totalRevenues: number
   totalExpenses: number
+  previousMonthBalance?: number
+  resultBalance?: number
 }
 
 interface DashboardStatsProps {
@@ -21,6 +23,8 @@ function formatCurrency(value: number) {
 }
 
 export function DashboardStats({ stats }: DashboardStatsProps) {
+  const resultBalance = stats.resultBalance ?? (stats.periodRevenues - stats.periodExpenses)
+  
   const statsCards = [
     {
       title: 'Saldo em Caixa',
@@ -28,7 +32,18 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
       icon: FaWallet,
       bgColor: 'bg-green-50',
       iconColor: 'text-green-600',
-      trend: stats.balance >= 0 ? '+8.2%' : undefined,
+      trend: stats.balance >= 0 ? undefined : undefined,
+      subtitle: stats.previousMonthBalance !== undefined 
+        ? `Saldo anterior: ${formatCurrency(stats.previousMonthBalance)}`
+        : undefined,
+    },
+    {
+      title: 'Saldo Resultante',
+      value: formatCurrency(resultBalance),
+      icon: FaChartLine,
+      bgColor: resultBalance >= 0 ? 'bg-emerald-50' : 'bg-red-50',
+      iconColor: resultBalance >= 0 ? 'text-emerald-600' : 'text-red-600',
+      subtitle: 'Entrada - Saída do mês',
     },
     {
       title: 'Entradas (Mês)',
@@ -54,7 +69,7 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
   ]
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
       {statsCards.map((card) => {
         const Icon = card.icon
         return (
@@ -74,6 +89,9 @@ export function DashboardStats({ stats }: DashboardStatsProps) {
             </div>
             <p className="text-sm text-slate-300 font-medium">{card.title}</p>
             <h3 className="text-2xl font-bold text-white">{card.value}</h3>
+            {card.subtitle && (
+              <p className="text-xs text-slate-400 mt-1">{card.subtitle}</p>
+            )}
           </div>
         )
       })}

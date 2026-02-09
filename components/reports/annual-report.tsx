@@ -179,6 +179,7 @@ export function AnnualReport({ data }: AnnualReportProps) {
               <Tooltip 
                 formatter={formatTooltipValue}
                 contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px', color: '#fff' }}
+                cursor={{ fill: 'transparent' }}
               />
               <Legend />
               <Line 
@@ -227,6 +228,7 @@ export function AnnualReport({ data }: AnnualReportProps) {
               <Tooltip 
                 formatter={formatTooltipValue}
                 contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #475569', borderRadius: '8px', color: '#fff' }}
+                cursor={{ fill: 'transparent' }}
               />
               <Legend />
               <Bar dataKey="Entradas" fill="#10b981" />

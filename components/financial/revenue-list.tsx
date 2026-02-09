@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
-import { FaPlus, FaTrash } from 'react-icons/fa'
+import { FaPlus, FaTrash, FaEdit } from 'react-icons/fa'
+import Link from 'next/link'
 import { deleteRevenue } from '@/app/actions/financial'
 import { Card } from '@/components/ui/card'
 
@@ -78,14 +79,23 @@ function RevenueRow({ revenue, onDelete, isDeleting }: RevenueRowProps) {
         {isReserveFund ? (
           <span className="text-xs text-slate-500 italic">Protegida</span>
         ) : (
-          <button
-            onClick={() => onDelete(revenue.id)}
-            disabled={isDeleting}
-            className="text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
-            title="Excluir receita"
-          >
-            <FaTrash />
-          </button>
+          <div className="flex items-center justify-end gap-3">
+            <Link
+              href={`/receitas/${revenue.id}/editar`}
+              className="text-indigo-400 hover:text-indigo-300 transition-colors"
+              title="Editar receita"
+            >
+              <FaEdit />
+            </Link>
+            <button
+              onClick={() => onDelete(revenue.id)}
+              disabled={isDeleting}
+              className="text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
+              title="Excluir receita"
+            >
+              <FaTrash />
+            </button>
+          </div>
         )}
       </td>
     </tr>

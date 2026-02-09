@@ -22,6 +22,9 @@ export default function LoginPage() {
     formState: { errors },
   } = useForm<LoginInput>({
     resolver: zodResolver(loginSchema),
+    defaultValues: {
+      rememberMe: false,
+    },
   })
 
   async function onSubmit(data: LoginInput) {
@@ -30,14 +33,22 @@ export default function LoginPage() {
 
     try {
       const result = await signIn(data.email, data.password)
+      
       if (result?.error) {
         setError(result.error)
-      } else {
+        setIsLoading(false)
+      } else if (result?.success) {
+        // Redirecionar após login bem-sucedido
         router.push('/dashboard')
+        router.refresh() // Forçar atualização da página
+      } else {
+        // Fallback caso não retorne nada
+        setError('Resposta inesperada do servidor')
+        setIsLoading(false)
       }
     } catch (err) {
-      setError('Erro ao fazer login. Tente novamente.')
-    } finally {
+      console.error('Erro ao fazer login:', err)
+      setError(err instanceof Error ? err.message : 'Erro ao fazer login. Tente novamente.')
       setIsLoading(false)
     }
   }

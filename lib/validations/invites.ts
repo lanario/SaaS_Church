@@ -6,6 +6,9 @@ import { z } from 'zod'
 export const createInviteSchema = z.object({
   email: z.string().email('E-mail inválido'),
   expires_in_days: z.number().min(1).max(30).default(7), // Padrão 7 dias
+  invite_type: z.enum(['collaborator', 'member'], {
+    errorMap: () => ({ message: 'Tipo de convite deve ser colaborador ou membro' })
+  }),
 })
 
 export type CreateInviteInput = z.infer<typeof createInviteSchema>

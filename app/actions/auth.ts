@@ -21,70 +21,27 @@ export async function signIn(email: string, password: string) {
     return { error: 'Erro ao fazer login' }
   }
 
-  // Verificar se o perfil existe, se não, criar um básico
-  const { data: profiles } = await supabase
-    .from('user_profiles')
-    .select('id')
-    .eq('id', authData.user.id)
-    .limit(1)
-    .maybeSingle()
+  // Garantir que o perfil existe usando função centralizada
+  const { ensureUserProfile } = await import('@/lib/utils/ensure-user-profile')
+  const profileResult = await ensureUserProfile()
 
-  const profile = profiles
+  // Se houver erro, logar mas não bloquear login (perfil pode ser criado depois)
+  if (profileResult.error) {
+    console.error('Erro ao garantir perfil durante login:', profileResult.error)
+  }
 
-  // Se o perfil não existe, tentar criar automaticamente apenas se houver igreja existente
-  if (!profile) {
-    // Buscar igreja existente (sem .single() para evitar erro)
-    const { data: existingChurches } = await supabase
-      .from('churches')
-      .select('id')
-      .limit(1)
-
-    const churchId = existingChurches && existingChurches.length > 0 ? existingChurches[0].id : null
-
-    // Apenas criar perfil se houver igreja existente (não criar igreja devido a RLS)
-    if (churchId) {
-      // Criar perfil automaticamente
-      const { error: createProfileError } = await supabase
-        .from('user_profiles')
-        .insert({
-          id: authData.user.id,
-          church_id: churchId,
-          full_name: authData.user.email?.split('@')[0] || 'Usuário',
-          email: authData.user.email || '',
-          role: 'owner',
-        })
-
-      if (createProfileError) {
-        console.error('Erro ao criar perfil durante login:', createProfileError)
-      } else {
-        // Criar permissões iniciais (não bloquear resposta)
-        Promise.resolve(supabase
-          .from('user_permissions')
-          .insert({
-            user_id: authData.user.id,
-            church_id: churchId,
-            can_manage_finances: true,
-            can_manage_members: true,
-            can_manage_events: true,
-            can_view_reports: true,
-            can_send_whatsapp: true,
-          }))
-          .then(() => {
-            // Garantir categorias padrão de receitas (fire and forget)
-            import('@/app/actions/financial').then(({ ensureDefaultCategories }) => {
-              ensureDefaultCategories(churchId).catch(console.error)
-            }).catch(console.error)
-          })
-          .catch(console.error)
-      }
-    } else {
-      // Se não houver igreja, o perfil será criado apenas durante o cadastro
-      console.warn('Usuário logado sem perfil e sem igreja existente. Perfil será criado apenas durante cadastro completo.')
-    }
+  // Se o perfil foi criado/atualizado com sucesso, garantir categorias padrão
+  if (profileResult.churchId && !profileResult.error) {
+    // Garantir categorias padrão de receitas (fire and forget)
+    Promise.resolve(
+      import('@/app/actions/financial').then(({ ensureDefaultCategories }) => {
+        ensureDefaultCategories(profileResult.churchId!).catch(console.error)
+      }).catch(console.error)
+    )
   }
 
   revalidatePath('/', 'layout')
-  redirect('/dashboard')
+  return { success: true }
 }
 
 export async function signUp(data: RegisterInput) {

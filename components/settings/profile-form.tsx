@@ -133,7 +133,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
 
       {/* Profile Tab */}
       {activeTab === 'profile' && (
-        <Card className="p-6">
+        <Card className="p-6 bg-slate-700 border border-slate-600">
           <form onSubmit={handleSubmitProfile(onSubmitProfile)} className="space-y-4">
             <div>
               <label htmlFor="full_name" className="block text-sm font-medium text-slate-300 mb-1">
@@ -205,7 +205,7 @@ export function ProfileForm({ initialData }: ProfileFormProps) {
 
       {/* Password Tab */}
       {activeTab === 'password' && (
-        <Card className="p-6">
+        <Card className="p-6 bg-slate-700 border border-slate-600">
           <form onSubmit={handleSubmitPassword(onSubmitPassword)} className="space-y-4">
             <div>
               <label htmlFor="currentPassword" className="block text-sm font-medium text-slate-300 mb-1">

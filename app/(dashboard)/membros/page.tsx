@@ -13,20 +13,31 @@ export default async function MembrosPage({
 }: {
   searchParams: SearchParams
 }) {
-  const { data: members, error } = await getMembers(
+  const result = await getMembers(
     searchParams.search,
     searchParams.status
   )
 
-  if (error) {
+  if (result.error) {
     return (
       <div className="p-8">
         <div className="bg-red-900/30 border border-red-700 rounded-xl p-4 text-red-300">
-          Erro ao carregar membros: {error}
+          Erro ao carregar membros: {result.error}
         </div>
       </div>
     )
   }
+
+  const members = (result.data || []) as unknown as Array<{
+    id: string
+    full_name: string
+    email: string | null
+    phone: string | null
+    birth_date: string | null
+    member_since: string | null
+    status: string
+    avatar_url: string | null
+  }>
 
   return (
     <div className="flex-1 overflow-y-auto p-8">
@@ -40,7 +51,7 @@ export default async function MembrosPage({
 
       <MemberSearch />
 
-      <MemberList members={members || []} />
+      <MemberList members={members} />
     </div>
   )
 }

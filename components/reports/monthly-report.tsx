@@ -156,6 +156,7 @@ export function MonthlyReport({ data }: MonthlyReportProps) {
               }}
               labelStyle={{ color: '#cbd5e1', marginBottom: '6px', fontWeight: 600 }}
               itemStyle={{ padding: '2px 0' }}
+              cursor={{ fill: 'transparent' }}
             />
             <Legend 
               wrapperStyle={{ paddingTop: '30px' }}

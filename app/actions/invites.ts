@@ -1,9 +1,8 @@
 'use server'
 
-'use server'
-
 import { createClient } from '@/lib/supabase/server'
 import { revalidatePath } from 'next/cache'
+import { redirect } from 'next/navigation'
 import { getChurchId } from '@/lib/utils/get-church-id'
 import type { CreateInviteInput, AcceptInviteInput } from '@/lib/validations/invites'
 
@@ -62,21 +61,49 @@ export async function createInvite(data: CreateInviteInput) {
   expiresAt.setDate(expiresAt.getDate() + data.expires_in_days)
 
   // Criar convite
+  // Verificar se a coluna invite_type existe antes de usar
+  const inviteData: any = {
+    church_id: churchId,
+    email: data.email,
+    invited_by: user.id,
+    token,
+    expires_at: expiresAt.toISOString(),
+    status: 'pending',
+  }
+  
+  // Adicionar invite_type apenas se a coluna existir (após migração)
+  // Se não existir, o banco usará o valor padrão 'member'
+  if (data.invite_type) {
+    inviteData.invite_type = data.invite_type
+  }
+
   const { data: invite, error } = await supabase
     .from('church_invites')
-    .insert({
-      church_id: churchId,
-      email: data.email,
-      invited_by: user.id,
-      token,
-      expires_at: expiresAt.toISOString(),
-      status: 'pending',
-    })
+    .insert(inviteData)
     .select()
     .single()
 
   if (error) {
+    // Se o erro for sobre coluna não existir, orientar sobre migração
+    if (error.message.includes('invite_type') || error.message.includes('column') || error.code === '42703') {
+      return { 
+        error: 'A coluna invite_type não existe no banco. Execute o arquivo 00_MIGRACOES_INCREMENTAIS.sql no Supabase SQL Editor primeiro.', 
+        invite: null 
+      }
+    }
     return { error: `Erro ao criar convite: ${error.message}`, invite: null }
+  }
+
+  // Registrar log da ação
+  if (user && churchId && invite) {
+    const { logAction } = await import('@/lib/utils/logger')
+    await logAction(supabase, churchId, user.id, {
+      actionType: 'create',
+      entityType: 'invite',
+      entityId: invite.id,
+      description: `Convite ${data.invite_type === 'collaborator' ? 'de colaborador' : 'de membro'} criado para ${data.email}`,
+      metadata: { email: data.email, inviteType: data.invite_type },
+    })
   }
 
   revalidatePath('/ajustes', 'layout')
@@ -112,9 +139,10 @@ export async function getChurchInvites() {
   }
 
   // Buscar convites
+  // Selecionar apenas colunas que existem (invite_type pode não existir ainda)
   const { data: invites, error } = await supabase
     .from('church_invites')
-    .select('*')
+    .select('id, email, status, token, expires_at, created_at, accepted_at, rejected_at, invite_type')
     .eq('church_id', churchId)
     .order('created_at', { ascending: false })
 
@@ -123,6 +151,169 @@ export async function getChurchInvites() {
   }
 
   return { error: null, invites: invites || [] }
+}
+
+/**
+ * Fazer logout e redirecionar para página de convite
+ */
+export async function signOutAndRedirectToInvite(token: string) {
+  const supabase = await createClient()
+  await supabase.auth.signOut()
+  revalidatePath('/', 'layout')
+  redirect(`/convite/${token}`)
+}
+
+/**
+ * Criar conta a partir de convite (com senha padrão)
+ */
+export async function createAccountFromInvite(token: string, password: string = '12345678') {
+  const supabase = await createClient()
+
+  // Buscar convite pelo token
+  const { data: invite, error: inviteError } = await supabase
+    .from('church_invites')
+    .select('*')
+    .eq('token', token)
+    .eq('status', 'pending')
+    .single()
+
+  if (inviteError || !invite) {
+    return { error: 'Convite não encontrado ou já foi usado', user: null }
+  }
+
+  // Verificar se o convite não expirou
+  if (new Date(invite.expires_at) < new Date()) {
+    await supabase
+      .from('church_invites')
+      .update({ status: 'expired' })
+      .eq('id', invite.id)
+    return { error: 'Este convite expirou', user: null }
+  }
+
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+  // URL para onde o usuário vai após clicar no link de confirmação (Supabase envia token no hash)
+  // Adicione em Supabase: Authentication > URL Configuration > Redirect URLs: baseUrl/auth/confirmar e baseUrl/auth/callback
+  const redirectAfterConfirm = `${baseUrl}/auth/confirmar?next=${encodeURIComponent(`/convite/${token}`)}`
+
+  // Criar usuário no Supabase Auth
+  const { data: authData, error: authError } = await supabase.auth.signUp({
+    email: invite.email,
+    password: password,
+    options: {
+      emailRedirectTo: redirectAfterConfirm,
+      data: {
+        invite_token: token,
+      },
+    },
+  })
+
+  if (authError) {
+    // Se o erro for sobre usuário já existir, sugerir login
+    if (authError.message.includes('already registered') || authError.message.includes('User already registered')) {
+      return { error: 'Já existe uma conta com este e-mail. Faça login para aceitar o convite.', user: null, existingUser: true }
+    }
+    return { error: `Erro ao criar conta: ${authError.message}`, user: null }
+  }
+
+  if (!authData.user) {
+    return { error: 'Erro ao criar usuário', user: null }
+  }
+
+  // Criar perfil do usuário JÁ COM church_id e role 'owner' (todos têm as mesmas permissões)
+  const { error: profileError } = await supabase
+    .from('user_profiles')
+    .insert({
+      id: authData.user.id,
+      church_id: invite.church_id, // Já incluir church_id desde o início
+      email: invite.email,
+      full_name: invite.email.split('@')[0], // Nome temporário baseado no email
+      role: 'owner', // Todos os usuários são 'owner' com permissões completas
+    })
+
+  if (profileError) {
+    console.error('Erro ao criar perfil:', profileError)
+    // Se o perfil já existir, atualizar com church_id e role 'owner'
+    if (profileError.code === '23505') { // Violação de constraint única
+      await supabase
+        .from('user_profiles')
+        .update({
+          church_id: invite.church_id,
+          role: 'owner',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', authData.user.id)
+    }
+  } else {
+    // Criar permissões imediatamente após criar perfil
+    await supabase
+      .from('user_permissions')
+      .upsert({
+        user_id: authData.user.id,
+        church_id: invite.church_id,
+        can_manage_finances: true,
+        can_manage_members: true,
+        can_manage_events: true,
+        can_view_reports: true,
+        can_send_whatsapp: true,
+      }, {
+        onConflict: 'user_id,church_id'
+      })
+  }
+
+  // Aguardar um pouco para garantir que o perfil foi criado
+  await new Promise(resolve => setTimeout(resolve, 500))
+
+  // Verificar se o usuário precisa confirmar email
+  if (authData.user && !authData.session) {
+    // Usuário criado mas precisa confirmar email
+    return { 
+      error: `Conta criada com sucesso! Verifique seu email (${invite.email}) para confirmar a conta. Após confirmar, faça login e acesse o link do convite novamente.`, 
+      user: authData.user,
+      needsEmailConfirmation: true 
+    }
+  }
+
+  // Se já tem sessão, usar diretamente
+  if (authData.session && authData.user) {
+    // Aguardar um pouco para garantir que a sessão foi estabelecida
+    await new Promise(resolve => setTimeout(resolve, 500))
+
+    // Aceitar convite automaticamente
+    const acceptResult = await acceptInvite({ token })
+
+    if (acceptResult.error) {
+      return { error: `Conta criada, mas erro ao aceitar convite: ${acceptResult.error}`, user: authData.user }
+    }
+
+    return { error: null, user: authData.user }
+  }
+
+  // Tentar fazer login automaticamente após criar conta
+  const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+    email: invite.email,
+    password: password,
+  })
+
+  if (signInError || !signInData.user) {
+    // Se não conseguir fazer login, retornar erro mas informar que a conta foi criada
+    return { 
+      error: `Conta criada com sucesso, mas não foi possível fazer login automaticamente. Por favor, faça login manualmente e acesse o link do convite novamente.`, 
+      user: authData.user,
+      needsLogin: true 
+    }
+  }
+
+  // Aguardar um pouco para garantir que a sessão foi estabelecida
+  await new Promise(resolve => setTimeout(resolve, 500))
+
+  // Aceitar convite automaticamente após criar conta e fazer login
+  const acceptResult = await acceptInvite({ token })
+
+  if (acceptResult.error) {
+    return { error: `Conta criada e login realizado, mas erro ao aceitar convite: ${acceptResult.error}`, user: signInData.user }
+  }
+
+  return { error: null, user: signInData.user }
 }
 
 /**
@@ -159,44 +350,69 @@ export async function acceptInvite(data: AcceptInviteInput) {
     return { error: 'Este convite expirou' }
   }
 
-  // Verificar se o email do convite corresponde ao email do usuário
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('email')
-    .eq('id', user.id)
-    .limit(1)
-    .single()
-
-  if (!profile || profile.email !== invite.email) {
-    return { error: 'Este convite não foi enviado para seu e-mail' }
+  // Verificar se o email do convite corresponde ao email do usuário autenticado
+  // Usar o email do auth.users (que é o email de login) ao invés do user_profiles
+  if (user.email && user.email.toLowerCase() !== invite.email.toLowerCase()) {
+    return { error: `Este convite foi enviado para ${invite.email}, mas você está logado com ${user.email}. Por favor, faça login com o email correto ou use o link do convite.` }
   }
 
-  // Atualizar perfil do usuário para associar à igreja
+  // Se o usuário não tem email no auth, verificar no perfil
+  if (!user.email) {
+    const { data: profile } = await supabase
+      .from('user_profiles')
+      .select('email')
+      .eq('id', user.id)
+      .limit(1)
+      .single()
+
+    if (!profile || profile.email?.toLowerCase() !== invite.email.toLowerCase()) {
+      return { error: `Este convite foi enviado para ${invite.email}, mas seu perfil está associado a outro email.` }
+    }
+  }
+
+  // Definir role baseado no tipo de convite
+  const role = invite.invite_type === 'collaborator' ? 'collaborator' : 'member'
+  
+  // Colaboradores têm acesso completo, membros têm acesso limitado
+  const hasFullAccess = invite.invite_type === 'collaborator'
+  
   const { error: updateProfileError } = await supabase
     .from('user_profiles')
-    .update({
-      church_id: invite.church_id,
-      role: 'member',
+    .upsert({
+      id: user.id,
+      church_id: invite.church_id, // Colaboradores acessam dados da igreja do dono
+      email: user.email || invite.email,
+      full_name: user.email?.split('@')[0] || invite.email.split('@')[0] || 'Usuário',
+      role: role,
       updated_at: new Date().toISOString(),
+    }, {
+      onConflict: 'id'
     })
-    .eq('id', user.id)
 
   if (updateProfileError) {
     return { error: `Erro ao atualizar perfil: ${updateProfileError.message}` }
   }
 
-  // Criar permissões básicas para membro
-  await supabase
+  // Definir permissões baseado no tipo de convite
+  const { error: permissionError } = await supabase
     .from('user_permissions')
     .upsert({
       user_id: user.id,
       church_id: invite.church_id,
-      can_manage_finances: false,
-      can_manage_members: false,
-      can_manage_events: false,
-      can_view_reports: false,
-      can_send_whatsapp: false,
+      can_manage_finances: hasFullAccess,
+      can_manage_members: hasFullAccess,
+      can_manage_events: hasFullAccess,
+      can_view_reports: hasFullAccess,
+      can_send_whatsapp: hasFullAccess,
+      updated_at: new Date().toISOString(),
+    }, {
+      onConflict: 'user_id,church_id'
     })
+
+  if (permissionError) {
+    console.error('Erro ao criar permissões:', permissionError)
+    // Não falhar se apenas as permissões falharem, mas logar o erro
+  }
 
   // Marcar convite como aceito
   const { error: acceptError } = await supabase
@@ -294,8 +510,8 @@ export async function hasAcceptedInvite() {
     return { error: 'Perfil não encontrado', hasInvite: false }
   }
 
-  // Owners e treasurers sempre têm acesso
-  if (profile.role === 'owner' || profile.role === 'treasurer') {
+  // Todos os usuários são 'owner' e têm acesso completo
+  if (profile.role === 'owner') {
     return { error: null, hasInvite: true }
   }
 
@@ -311,4 +527,3 @@ export async function hasAcceptedInvite() {
 
   return { error: null, hasInvite: !!invite }
 }
-

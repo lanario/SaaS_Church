@@ -1,10 +1,4 @@
--- ============================================
--- PERMITIR OWNER VER USUÁRIOS DA MESMA IGREJA
--- Execute este script no Supabase SQL Editor
--- ============================================
-
--- Criar função que permite owners ver outros usuários da mesma igreja
--- sem causar recursão no RLS
+-- Corrigir função get_church_users para resolver ambiguidade na coluna 'role'
 CREATE OR REPLACE FUNCTION get_church_users()
 RETURNS TABLE (
   id UUID,
@@ -21,7 +15,7 @@ RETURNS TABLE (
   can_send_whatsapp BOOLEAN
 )
 LANGUAGE plpgsql
-SECURITY DEFINER -- Permite que a função execute com privilégios do criador
+SECURITY DEFINER
 AS $$
 DECLARE
   v_user_id UUID;
@@ -35,14 +29,14 @@ BEGIN
     RAISE EXCEPTION 'Usuário não autenticado';
   END IF;
   
-  -- Buscar church_id e role do usuário autenticado
-  SELECT church_id, role INTO v_church_id, v_user_role
-  FROM user_profiles
-  WHERE id = v_user_id;
+  -- Buscar church_id e role do usuário autenticado (especificar tabela explicitamente)
+  SELECT up.church_id, up.role INTO v_church_id, v_user_role
+  FROM user_profiles up
+  WHERE up.id = v_user_id;
   
-  -- Verificar se o usuário é owner
-  IF v_user_role != 'owner' THEN
-    RAISE EXCEPTION 'Apenas proprietários podem ver outros usuários';
+  -- Verificar se o usuário é owner ou collaborator
+  IF v_user_role NOT IN ('owner', 'collaborator') THEN
+    RAISE EXCEPTION 'Apenas proprietários e colaboradores podem ver outros usuários';
   END IF;
   
   IF v_church_id IS NULL THEN
@@ -73,8 +67,3 @@ $$;
 
 -- Permitir que usuários autenticados executem a função
 GRANT EXECUTE ON FUNCTION get_church_users() TO authenticated;
-
--- ============================================
--- FIM DO SCRIPT
--- ============================================
-

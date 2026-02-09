@@ -54,7 +54,7 @@ export function ChurchForm({ initialData }: ChurchFormProps) {
   }
 
   return (
-    <Card className="p-6">
+    <Card className="p-6 bg-slate-700 border border-slate-600">
       <div className="flex items-center gap-3 mb-6">
         <FaChurch className="w-6 h-6 text-indigo-400" />
         <h2 className="text-xl font-bold text-white">Informações da Igreja</h2>

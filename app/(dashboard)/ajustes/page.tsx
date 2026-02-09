@@ -3,6 +3,7 @@ import { getChurch } from '@/app/actions/settings'
 import { SettingsTabsWrapper } from '@/components/settings/settings-tabs-wrapper'
 import { redirect } from 'next/navigation'
 import { Card } from '@/components/ui/card'
+import { ensureUserProfile } from '@/lib/utils/ensure-user-profile'
 
 export default async function AjustesPage() {
   const supabase = await createClient()
@@ -12,22 +13,31 @@ export default async function AjustesPage() {
     redirect('/login')
   }
 
-  // Buscar perfil do usuário
-  const { data: profileData } = await supabase
-    .from('user_profiles')
-    .select('*')
-    .eq('id', user.id)
-    .limit(1)
-    .single()
+  // Garantir que o perfil existe usando função centralizada
+  const { error, profile } = await ensureUserProfile()
 
-  const profile = profileData || null
-
-  if (!profile) {
+  if (error || !profile) {
     return (
       <div className="flex-1 overflow-y-auto p-8">
-        <Card className="p-6">
+        <Card className="p-6 bg-slate-700 border border-red-600">
           <div className="text-center py-8">
-            <p className="text-red-400">Perfil não encontrado. Por favor, faça logout e login novamente.</p>
+            <h2 className="text-xl font-bold text-red-400 mb-4">Atenção</h2>
+            <p className="text-red-300 mb-4">
+              {error || 'Perfil não encontrado. Por favor, faça logout e login novamente.'}
+            </p>
+            <p className="text-sm text-slate-400 mb-4">
+              Se você acabou de se cadastrar, pode ser que seu perfil ainda esteja sendo configurado.
+              Tente fazer logout e login novamente.
+            </p>
+            <p className="text-xs text-slate-500 mb-4">
+              Se o problema persistir, execute o script SQL: supabase/VERIFICAR_E_CORRIGIR_PERFIL.sql
+            </p>
+            <a
+              href="/login"
+              className="inline-block px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              Ir para Login
+            </a>
           </div>
         </Card>
       </div>

@@ -74,8 +74,8 @@ export function MemberList({ members }: MemberListProps) {
 
   if (members.length === 0) {
     return (
-      <Card className="p-8 text-center">
-        <p className="text-slate-400">Nenhum membro cadastrado ainda.</p>
+      <Card className="p-8 text-center bg-slate-700 border border-slate-600">
+        <p className="text-white">Nenhum membro cadastrado ainda.</p>
       </Card>
     )
   }
@@ -83,7 +83,7 @@ export function MemberList({ members }: MemberListProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {members.map((member) => (
-        <Card key={member.id} className="p-6 hover:scale-105 active:scale-95 transition-transform duration-150">
+        <Card key={member.id} className="p-6 bg-slate-700 border border-slate-600 hover:scale-105 active:scale-95 transition-transform duration-150">
           <div className="flex items-start justify-between mb-4">
             <div className="flex items-center gap-4">
               {member.avatar_url ? (
@@ -100,10 +100,10 @@ export function MemberList({ members }: MemberListProps) {
               <div>
                 <h3 className="font-bold text-white">{member.full_name}</h3>
                 {member.email && (
-                  <p className="text-sm text-slate-400">{member.email}</p>
+                  <p className="text-sm text-white">{member.email}</p>
                 )}
                 {member.phone && (
-                  <p className="text-sm text-slate-400">{member.phone}</p>
+                  <p className="text-sm text-white">{member.phone}</p>
                 )}
               </div>
             </div>
@@ -112,25 +112,11 @@ export function MemberList({ members }: MemberListProps) {
           <div className="flex items-center justify-between mb-4">
             {getStatusBadge(member.status)}
             {member.member_since && (
-              <p className="text-xs text-slate-400">
+              <p className="text-xs text-white">
                 Desde {format(new Date(member.member_since), 'MMM yyyy', { locale: ptBR })}
               </p>
             )}
           </div>
-
-          {member.user_id ? (
-            <div className="mb-4">
-              <span className="text-xs text-green-400 bg-green-500/20 border border-green-500/30 px-2 py-1 rounded">
-                Conta criada
-              </span>
-            </div>
-          ) : (
-            <div className="mb-4">
-              <span className="text-xs text-amber-400 bg-amber-500/20 border border-amber-500/30 px-2 py-1 rounded">
-                Sem conta
-              </span>
-            </div>
-          )}
 
           <div className="flex gap-2">
             <Link

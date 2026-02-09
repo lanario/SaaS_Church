@@ -103,8 +103,8 @@ export function AvatarUpload({ memberId, currentAvatar }: AvatarUploadProps) {
           className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
         />
       ) : (
-        <div className="w-24 h-24 rounded-full bg-indigo-100 flex items-center justify-center border-4 border-white shadow-lg">
-          <FaUser className="text-indigo-600 text-4xl" />
+        <div className="w-24 h-24 rounded-full bg-indigo-600/20 flex items-center justify-center border-4 border-indigo-500/30 shadow-lg">
+          <FaUser className="text-indigo-400 text-4xl" />
         </div>
       )}
 
@@ -128,7 +128,7 @@ export function AvatarUpload({ memberId, currentAvatar }: AvatarUploadProps) {
       </label>
 
       {error && (
-        <div className="absolute top-full left-0 mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-600 text-xs max-w-xs">
+        <div className="absolute top-full left-0 mt-2 p-2 bg-red-900/30 border border-red-700 rounded text-red-300 text-xs max-w-xs">
           {error}
         </div>
       )}

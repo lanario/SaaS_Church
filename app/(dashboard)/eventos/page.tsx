@@ -24,10 +24,11 @@ export default async function EventosPage() {
     .limit(1)
     .single()
 
-  const isOwnerOrTreasurer = profile?.role === 'owner' || profile?.role === 'treasurer'
+  // Todos os usuários são 'owner' e têm acesso completo
+  const hasFullAccess = profile?.role === 'owner'
   
-  // Se não for owner/treasurer, verificar convite
-  let hasInvite = isOwnerOrTreasurer
+  // Se não tiver acesso completo, verificar convite
+  let hasInvite = hasFullAccess
   if (!hasInvite) {
     const inviteResult = await hasAcceptedInvite()
     hasInvite = inviteResult.hasInvite || false
@@ -45,7 +46,7 @@ export default async function EventosPage() {
   const { data: pastEvents } = await getEvents(pastStartDate, today, false) // Sem aniversários
 
   // Se não tem convite, mostrar mensagem
-  if (!hasInvite && !isOwnerOrTreasurer) {
+  if (!hasInvite) {
     return (
       <div className="flex-1 overflow-y-auto p-8">
         <Card className="p-6 max-w-2xl mx-auto">

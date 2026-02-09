@@ -4,7 +4,8 @@ import { SettingsTabs } from './settings-tabs'
 import { AjustesPerfil } from './ajustes-perfil'
 import { AjustesIgreja } from './ajustes-igreja'
 import { AjustesUsuarios } from './ajustes-usuarios'
-import { FaUser, FaChurch, FaUsers } from 'react-icons/fa'
+import { AjustesLogs } from './ajustes-logs'
+import { FaUser, FaChurch, FaUsers, FaHistory } from 'react-icons/fa'
 
 interface SettingsTabsWrapperProps {
   isOwner: boolean
@@ -27,6 +28,7 @@ export function SettingsTabsWrapper({ isOwner, profileData, churchData }: Settin
     ...(isOwner ? [
       { id: 'igreja', label: 'Igreja', icon: FaChurch },
       { id: 'usuarios', label: 'Usuários e Permissões', icon: FaUsers },
+      { id: 'logs', label: 'Logs do Sistema', icon: FaHistory },
     ] : []),
   ]
 
@@ -43,6 +45,10 @@ export function SettingsTabsWrapper({ isOwner, profileData, churchData }: Settin
 
         if (activeTab === 'usuarios' && isOwner) {
           return <AjustesUsuarios />
+        }
+
+        if (activeTab === 'logs' && isOwner) {
+          return <AjustesLogs />
         }
 
         return null

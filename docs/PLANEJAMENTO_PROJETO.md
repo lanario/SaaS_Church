@@ -269,7 +269,29 @@ SaaS completo para gestão financeira e administrativa de igrejas, desenvolvido 
 
 ---
 
-## 🔮 FASE 12: Funcionalidades Futuras
+## 💳 FASE 12: Integração Stripe (Pagamentos)
+
+**Status:** 📋 PLANEJADO
+
+### Objetivos:
+- Integração completa com Stripe para checkout de pagamento
+- Sistema de assinaturas recorrentes mensais
+- Gerenciamento de planos e subscriptions
+- Webhooks para sincronização automática
+
+### Entregas Planejadas:
+- [ ] Setup e configuração do Stripe
+- [ ] Estrutura de banco de dados para subscriptions
+- [ ] API de checkout
+- [ ] Webhooks do Stripe
+- [ ] Controle de acesso baseado em assinatura
+- [ ] Página de gerenciamento de assinatura
+
+**📄 Documentação Detalhada:** Ver `PLANEJAMENTO_STRIPE.md` para planejamento completo em 8 fases.
+
+---
+
+## 🔮 FASE 13: Funcionalidades Futuras
 
 **Status:** 📋 PLANEJADO
 
@@ -284,8 +306,7 @@ SaaS completo para gestão financeira e administrativa de igrejas, desenvolvido 
   - Relatórios personalizados
   - Gráficos customizáveis
 
-- [ ] **Integrações**
-  - Integração com sistemas de pagamento
+- [ ] **Integrações Adicionais**
   - Integração com contabilidade
   - API pública para integrações
 
@@ -370,10 +391,11 @@ supabase/
 
 ## 📊 Status Geral do Projeto
 
-- **Fases Completas:** 10/12 (83%)
+- **Fases Completas:** 10/13 (77%)
 - **Funcionalidades Core:** ✅ 100%
 - **Funcionalidades Avançadas:** 🚧 Em desenvolvimento
-- **Pronto para Produção:** 🟡 Quase (pendente testes e otimizações)
+- **Integração de Pagamentos:** 📋 Planejado (ver PLANEJAMENTO_STRIPE.md)
+- **Pronto para Produção:** 🟡 Quase (pendente testes, otimizações e pagamentos)
 
 ---
 

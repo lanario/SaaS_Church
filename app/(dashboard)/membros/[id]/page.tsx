@@ -7,10 +7,29 @@ export default async function MemberDetailPage({
 }: {
   params: { id: string }
 }) {
-  const { data: member, error } = await getMember(params.id)
+  const result = await getMember(params.id)
 
-  if (error || !member) {
+  if (result.error || !result.data) {
     notFound()
+  }
+
+  const member = result.data as unknown as {
+    id: string
+    full_name: string
+    email: string | null
+    phone: string | null
+    birth_date: string | null
+    member_since: string | null
+    status: string
+    notes: string | null
+    avatar_url: string | null
+    zip_code?: string
+    street?: string
+    address_number?: string
+    address_complement?: string
+    neighborhood?: string
+    city?: string
+    state?: string
   }
 
   const { data: contributions } = await getMemberContributions(params.id)

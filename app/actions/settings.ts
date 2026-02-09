@@ -167,76 +167,103 @@ export async function getChurchUsers() {
     .limit(1)
     .single()
 
-  if (profile?.role !== 'owner') {
-    return { error: 'Apenas o proprietário pode ver os usuários', users: null }
+  // Permitir que owners e collaborators vejam os usuários
+  if (profile?.role !== 'owner' && profile?.role !== 'collaborator') {
+    return { error: 'Apenas proprietários e colaboradores podem ver os usuários', users: null }
   }
 
-  // Usar função RPC para buscar usuários (evita problema de RLS)
+  // Tentar usar função RPC primeiro (evita problema de RLS)
+  // A função RPC usa SECURITY DEFINER e contorna RLS
   const { data: usersData, error: rpcError } = await supabase
     .rpc('get_church_users')
 
   if (rpcError) {
-    // Se a função RPC não existir, tentar método direto (pode falhar por RLS)
-    const { data: profiles, error: profilesError } = await supabase
-      .from('user_profiles')
-      .select(`
-        id,
-        full_name,
-        email,
-        phone,
-        role,
-        avatar_url,
-        created_at
-      `)
-      .eq('church_id', churchId)
-
-    if (profilesError) {
-      return { error: `Erro ao buscar usuários: ${profilesError.message}`, users: null }
+    console.error('Erro ao chamar get_church_users RPC:', rpcError)
+    // Se a função não existir (erro 42883), usar método direto
+    // Caso contrário, retornar erro
+    if (rpcError.code !== '42883' && rpcError.code !== 'P0001') {
+      return { error: `Erro ao buscar usuários: ${rpcError.message}`, users: null }
     }
-
-    // Buscar permissões de cada usuário
-    const userIds = profiles?.map(p => p.id) || []
-    const { data: permissions } = await supabase
-      .from('user_permissions')
-      .select('*')
-      .eq('church_id', churchId)
-      .in('user_id', userIds)
-
-    // Combinar perfis com permissões
-    const users = profiles?.map(profile => {
-      const permission = permissions?.find(p => p.user_id === profile.id)
-      return {
-        ...profile,
-        permissions: permission || {
-          can_manage_finances: false,
-          can_manage_members: false,
-          can_manage_events: false,
-          can_view_reports: false,
-          can_send_whatsapp: false,
-        },
-      }
-    }) || []
+  } else if (usersData) {
+    // Se RPC funcionou, formatar dados
+    const users = usersData.map((user: any) => ({
+      id: user.id,
+      full_name: user.full_name || user.email?.split('@')[0] || 'Usuário',
+      email: user.email,
+      phone: user.phone,
+      role: user.role,
+      avatar_url: user.avatar_url,
+      created_at: user.created_at,
+      permissions: {
+        can_manage_finances: Boolean(user.can_manage_finances),
+        can_manage_members: Boolean(user.can_manage_members),
+        can_manage_events: Boolean(user.can_manage_events),
+        can_view_reports: Boolean(user.can_view_reports),
+        can_send_whatsapp: Boolean(user.can_send_whatsapp),
+      },
+    }))
 
     return { error: null, users }
   }
 
-  // Se RPC funcionou, formatar dados
-  const users = usersData?.map((user: any) => ({
-    id: user.id,
-    full_name: user.full_name,
-    email: user.email,
-    phone: user.phone,
-    role: user.role,
-    avatar_url: user.avatar_url,
-    created_at: user.created_at,
-    permissions: {
-      can_manage_finances: user.can_manage_finances,
-      can_manage_members: user.can_manage_members,
-      can_manage_events: user.can_manage_events,
-      can_view_reports: user.can_view_reports,
-      can_send_whatsapp: user.can_send_whatsapp,
-    },
-  })) || []
+  // Se a função RPC não existir ou falhar, usar método direto
+  // Com a nova política RLS, owners e colaboradores podem ver outros usuários
+  const { data: profiles, error: profilesError } = await supabase
+    .from('user_profiles')
+    .select(`
+      id,
+      full_name,
+      email,
+      phone,
+      role,
+      avatar_url,
+      created_at
+    `)
+    .eq('church_id', churchId)
+    .order('created_at', { ascending: false })
+
+  if (profilesError) {
+    console.error('Erro ao buscar perfis:', profilesError)
+    return { error: `Erro ao buscar usuários: ${profilesError.message}`, users: null }
+  }
+
+  if (!profiles || profiles.length === 0) {
+    return { error: null, users: [] }
+  }
+
+  // Buscar permissões de todos os usuários de uma vez
+  const userIds = profiles.map(p => p.id)
+  const { data: permissions, error: permissionsError } = await supabase
+    .from('user_permissions')
+    .select('*')
+    .eq('church_id', churchId)
+    .in('user_id', userIds)
+
+  if (permissionsError) {
+    console.error('Erro ao buscar permissões:', permissionsError)
+    // Continuar mesmo sem permissões
+  }
+
+  // Combinar perfis com permissões
+  const users = profiles.map(profile => {
+    const permission = permissions?.find(p => p.user_id === profile.id)
+    return {
+      ...profile,
+      permissions: permission ? {
+        can_manage_finances: permission.can_manage_finances || false,
+        can_manage_members: permission.can_manage_members || false,
+        can_manage_events: permission.can_manage_events || false,
+        can_view_reports: permission.can_view_reports || false,
+        can_send_whatsapp: permission.can_send_whatsapp || false,
+      } : {
+        can_manage_finances: false,
+        can_manage_members: false,
+        can_manage_events: false,
+        can_view_reports: false,
+        can_send_whatsapp: false,
+      },
+    }
+  })
 
   return { error: null, users }
 }

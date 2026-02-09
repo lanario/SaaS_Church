@@ -46,7 +46,7 @@ export type UpdateChurchInput = z.infer<typeof updateChurchSchema>
 export const updatePermissionsSchema = z.object({
   user_id: z.string().uuid('ID de usuário inválido'),
   church_id: z.string().uuid('ID de igreja inválido').optional().or(z.literal('')), // Opcional, será preenchido no server action
-  role: z.enum(['owner', 'treasurer', 'marketing', 'member'], {
+  role: z.enum(['owner', 'collaborator', 'treasurer', 'marketing', 'member'], {
     errorMap: () => ({ message: 'Role inválido' }),
   }),
   can_manage_finances: z.boolean(),

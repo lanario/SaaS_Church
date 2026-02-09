@@ -5,9 +5,10 @@ import { useRouter } from 'next/navigation'
 import { useForm, Controller } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { revenueSchema, type RevenueInput } from '@/lib/validations/financial'
-import { createRevenue } from '@/app/actions/financial'
+import { createRevenue, updateRevenue } from '@/app/actions/financial'
 import { getMembers } from '@/app/actions/members'
 import { Input } from '@/components/ui/input'
+import { DateInput } from '@/components/ui/date-input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { FaDollarSign, FaCalendar } from 'react-icons/fa'
@@ -15,6 +16,16 @@ import { format } from 'date-fns'
 
 interface RevenueFormProps {
   categories: Array<{ id: string; name: string; color: string }>
+  revenue?: {
+    id: string
+    categoryId?: string | null
+    amount: number
+    description?: string | null
+    paymentMethod: string
+    transactionDate: string
+    memberId?: string | null
+  }
+  mode?: 'create' | 'edit'
 }
 
 interface Member {
@@ -22,7 +33,7 @@ interface Member {
   full_name: string
 }
 
-export function RevenueForm({ categories }: RevenueFormProps) {
+export function RevenueForm({ categories, revenue, mode = 'create' }: RevenueFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -39,7 +50,14 @@ export function RevenueForm({ categories }: RevenueFormProps) {
     formState: { errors },
   } = useForm<RevenueInput>({
     resolver: zodResolver(revenueSchema),
-    defaultValues: {
+    defaultValues: revenue ? {
+      categoryId: revenue.categoryId || '',
+      amount: revenue.amount,
+      description: revenue.description || undefined,
+      paymentMethod: revenue.paymentMethod as 'cash' | 'pix' | 'card' | 'transfer',
+      transactionDate: revenue.transactionDate.split('T')[0],
+      memberId: revenue.memberId || undefined,
+    } : {
       paymentMethod: 'cash',
       transactionDate: new Date().toISOString().split('T')[0],
       categoryId: '',
@@ -55,15 +73,16 @@ export function RevenueForm({ categories }: RevenueFormProps) {
   // Carregar membros quando necessário
   useEffect(() => {
     async function loadMembers() {
-      if (selectedCategoryId) {
-        const category = categories.find(c => c.id === selectedCategoryId)
+      const currentCategoryId = selectedCategoryId || categoryId
+      if (currentCategoryId) {
+        const category = categories.find(c => c.id === currentCategoryId)
         const categoryName = category?.name?.toLowerCase() || ''
         
         if (categoryName === 'dízimos' || categoryName === 'dizimos') {
           setIsLoadingMembers(true)
-          const { data } = await getMembers()
-          if (data) {
-            setMembers(data)
+          const result = await getMembers()
+          if (result.data) {
+            setMembers(result.data as unknown as any[])
           }
           setIsLoadingMembers(false)
         } else {
@@ -74,11 +93,11 @@ export function RevenueForm({ categories }: RevenueFormProps) {
       }
     }
     loadMembers()
-  }, [selectedCategoryId, categories])
+  }, [selectedCategoryId, categoryId, categories])
 
-  // Atualizar descrição automaticamente
+  // Atualizar descrição automaticamente (apenas no modo de criação)
   useEffect(() => {
-    if (categoryId && transactionDate) {
+    if (mode === 'create' && categoryId && transactionDate) {
       const category = categories.find(c => c.id === categoryId)
       const categoryName = category?.name?.toLowerCase() || ''
 
@@ -94,7 +113,7 @@ export function RevenueForm({ categories }: RevenueFormProps) {
         }
       }
     }
-  }, [categoryId, transactionDate, memberId, members, categories, setValue])
+  }, [categoryId, transactionDate, memberId, members, categories, setValue, mode])
 
   // Detectar mudança na categoria
   useEffect(() => {
@@ -146,29 +165,35 @@ export function RevenueForm({ categories }: RevenueFormProps) {
     console.log('Submitting data:', submitData)
 
     try {
-      const result = await createRevenue(submitData)
-      console.log('Create revenue result:', result)
+      let result
+      if (mode === 'edit' && revenue) {
+        result = await updateRevenue(revenue.id, submitData)
+      } else {
+        result = await createRevenue(submitData)
+      }
+      
+      console.log(`${mode === 'edit' ? 'Update' : 'Create'} revenue result:`, result)
       if (result?.error) {
         setError(result.error)
       } else if (result?.success) {
         router.push('/receitas')
         router.refresh()
       } else {
-        setError('Erro desconhecido ao salvar receita')
+        setError(`Erro desconhecido ao ${mode === 'edit' ? 'atualizar' : 'salvar'} receita`)
       }
     } catch (err) {
-      console.error('Error creating revenue:', err)
-      setError(`Erro ao criar receita: ${err instanceof Error ? err.message : 'Tente novamente.'}`)
+      console.error(`Error ${mode === 'edit' ? 'updating' : 'creating'} revenue:`, err)
+      setError(`Erro ao ${mode === 'edit' ? 'atualizar' : 'criar'} receita: ${err instanceof Error ? err.message : 'Tente novamente.'}`)
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <Card>
+    <Card className="bg-slate-700 border border-slate-600">
       <CardContent className="p-8">
         {error && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl text-red-600 text-sm">
+          <div className="mb-6 p-4 bg-red-900/30 border border-red-700 rounded-xl text-red-300 text-sm">
             {error}
           </div>
         )}
@@ -184,39 +209,39 @@ export function RevenueForm({ categories }: RevenueFormProps) {
           }
         })} className="space-y-6">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label className="block text-sm font-semibold text-white mb-2">
               Categoria
             </label>
             <select
               {...register('categoryId')}
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
             >
-              <option value="">Selecione uma categoria</option>
+              <option value="" className="bg-slate-800">Selecione uma categoria</option>
               {categories.map((category) => (
-                <option key={category.id} value={category.id}>
+                <option key={category.id} value={category.id} className="bg-slate-800">
                   {category.name}
                 </option>
               ))}
             </select>
             {errors.categoryId && (
-              <p className="mt-1 text-sm text-red-600">{errors.categoryId.message}</p>
+              <p className="mt-1 text-sm text-red-400">{errors.categoryId.message}</p>
             )}
             {errors.amount && (
-              <p className="mt-1 text-sm text-red-600">{errors.amount.message}</p>
+              <p className="mt-1 text-sm text-red-400">{errors.amount.message}</p>
             )}
             {errors.transactionDate && (
-              <p className="mt-1 text-sm text-red-600">{errors.transactionDate.message}</p>
+              <p className="mt-1 text-sm text-red-400">{errors.transactionDate.message}</p>
             )}
           </div>
 
           {/* Campo de Membro - apenas para Dízimos */}
           {isDizimos && (
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
-                Membro <span className="text-red-500">*</span>
+              <label className="block text-sm font-semibold text-white mb-2">
+                Membro <span className="text-red-400">*</span>
               </label>
               {isLoadingMembers ? (
-                <div className="w-full px-4 py-3 border border-slate-200 rounded-xl text-gray-500">
+                <div className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-slate-400">
                   Carregando membros...
                 </div>
               ) : (
@@ -228,11 +253,11 @@ export function RevenueForm({ categories }: RevenueFormProps) {
                     <select
                       {...field}
                       value={field.value || ''}
-                      className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     >
-                      <option value="">Selecione um membro</option>
+                      <option value="" className="bg-slate-800">Selecione um membro</option>
                       {members.map((member) => (
-                        <option key={member.id} value={member.id}>
+                        <option key={member.id} value={member.id} className="bg-slate-800">
                           {member.full_name}
                         </option>
                       ))}
@@ -241,13 +266,13 @@ export function RevenueForm({ categories }: RevenueFormProps) {
                 />
               )}
               {errors.memberId && (
-                <p className="mt-1 text-sm text-red-600">{errors.memberId.message}</p>
+                <p className="mt-1 text-sm text-red-400">{errors.memberId.message}</p>
               )}
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label className="block text-sm font-semibold text-white mb-2">
               Valor
             </label>
             <Input
@@ -261,19 +286,18 @@ export function RevenueForm({ categories }: RevenueFormProps) {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label className="block text-sm font-semibold text-white mb-2">
               Descrição {isOfertas || isDizimos ? '(automática)' : ''}
             </label>
             <textarea
               {...register('description')}
-              className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className={`w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 ${isOfertas || isDizimos ? 'opacity-70 cursor-not-allowed' : ''}`}
               rows={3}
               placeholder="Descrição da receita..."
               readOnly={isOfertas || isDizimos}
-              style={isOfertas || isDizimos ? { backgroundColor: '#f3f4f6', cursor: 'not-allowed' } : {}}
             />
             {(isOfertas || isDizimos) && (
-              <p className="mt-1 text-xs text-gray-500">
+              <p className="mt-1 text-xs text-slate-400">
                 A descrição é preenchida automaticamente para esta categoria
               </p>
             )}
@@ -282,36 +306,45 @@ export function RevenueForm({ categories }: RevenueFormProps) {
           {/* Método de Pagamento - oculto para Ofertas e Dízimos */}
           {!isDefaultCategory && (
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">
+              <label className="block text-sm font-semibold text-white mb-2">
                 Método de Pagamento
               </label>
               <select
                 {...register('paymentMethod')}
-                className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-4 py-3 bg-slate-800 border border-slate-600 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                <option value="cash">Dinheiro</option>
-                <option value="pix">PIX</option>
-                <option value="card">Cartão</option>
-                <option value="transfer">Transferência</option>
+                <option value="cash" className="bg-slate-800">Dinheiro</option>
+                <option value="pix" className="bg-slate-800">PIX</option>
+                <option value="card" className="bg-slate-800">Cartão</option>
+                <option value="transfer" className="bg-slate-800">Transferência</option>
               </select>
             </div>
           )}
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label className="block text-sm font-semibold text-white mb-2">
               Data da Transação
             </label>
-            <Input
-              type="date"
-              icon={<FaCalendar />}
-              error={errors.transactionDate?.message}
-              {...register('transactionDate')}
+            <Controller
+              name="transactionDate"
+              control={control}
+              rules={{ required: 'Data da transação é obrigatória' }}
+              render={({ field }) => (
+                <DateInput
+                  icon={<FaCalendar />}
+                  error={errors.transactionDate?.message}
+                  value={typeof field.value === 'string' ? field.value : (field.value ? field.value.toISOString().split('T')[0] : '')}
+                  onChange={(value) => {
+                    field.onChange(value)
+                  }}
+                />
+              )}
             />
           </div>
 
           <div className="flex gap-4">
             <Button type="submit" className="flex-1" disabled={isLoading}>
-              {isLoading ? 'Salvando...' : 'Salvar Receita'}
+              {isLoading ? (mode === 'edit' ? 'Atualizando...' : 'Salvando...') : (mode === 'edit' ? 'Atualizar Receita' : 'Salvar Receita')}
             </Button>
             <Button
               type="button"
